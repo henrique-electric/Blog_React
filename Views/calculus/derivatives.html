@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Derivative — Deep Dive</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
+
+<script>
+  MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']]
+    },
+    svg: {
+      fontCache: 'global'
+    }
+  };
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<style>
+:root {
+  /* Colors */
+  --bg:       #f7f4ee;
+  --bg2:      #efebe2;
+  --bg-card:  #ffffff;
+  --ink:      #1a1810;
+  --ink2:     #3d3a30;
+  --ink3:     #7a7060;
+  --rule:     #d4cec0;
+  --gold:     #b5822a;
+  --gold-lt:  #e8c87a;
+  --teal:     #2a7a6a;
+  --teal-lt:  #7ac8b4;
+  --rose:     #8a2a3a;
+  --rose-lt:  #e87a8a;
+  --blue:     #2a4a7a;
+  --blue-lt:  #7aaae8;
+  --rect-pos: rgba(181,130,42,0.16);
+  --rect-neg: rgba(138,42,58,0.16);
+  --rect-str-pos: rgba(181,130,42,0.75);
+  --rect-str-neg: rgba(138,42,58,0.75);
+  
+  /* Canvas specific vars */
+  --canvas-bg:   #ffffff;
+  --grid-line:   #f0ede6;
+  --ax-line:     #b0aa98;
+  --ax-text:     #9a9280;
+  --tick-line:   #d0ccc0;
+  --shade-exact: rgba(42,122,106,0.12);
+  --height-line: rgba(42,74,122,0.35);
+  --int-marker:  rgba(181,130,42,0.4);
+  --blue-shade:  rgba(42,74,122,0.4);
+}
+
+[data-theme="dark"] {
+  --bg:       #161616;
+  --bg2:      #222222;
+  --bg-card:  #1e1e1e;
+  --ink:      #e4e0d8;
+  --ink2:     #b0a898;
+  --ink3:     #888070;
+  --rule:     #3d3a30;
+  --gold:     #d4a350;
+  --gold-lt:  #e8c87a;
+  --teal:     #4db6a1;
+  --teal-lt:  #7ac8b4;
+  --rose:     #cc6677;
+  --rose-lt:  #e87a8a;
+  --blue:     #6b9bed;
+  --blue-lt:  #7aaae8;
+  --rect-pos: rgba(212,163,80,0.2);
+  --rect-neg: rgba(204,102,119,0.2);
+  --rect-str-pos: rgba(212,163,80,0.8);
+  --rect-str-neg: rgba(204,102,119,0.8);
+
+  --canvas-bg:   #1a1a1a;
+  --grid-line:   #2a2a2a;
+  --ax-line:     #555555;
+  --ax-text:     #888888;
+  --tick-line:   #444444;
+  --shade-exact: rgba(77,182,161,0.15);
+  --height-line: rgba(107,155,237,0.35);
+  --int-marker:  rgba(212,163,80,0.4);
+  --blue-shade:  rgba(107,155,237,0.4);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg); color: var(--ink); font-family: 'Lora', Georgia, serif;
+  font-size: 16px; line-height: 1.75; transition: background-color 0.2s, color 0.2s;
+}
+
+/* ── HEADER ── */
+.site-header {
+  border-bottom: 2px solid var(--ink); padding: 2.5rem 2rem 2rem; display: flex;
+  align-items: flex-end; justify-content: space-between; gap: 2rem; flex-wrap: wrap;
+}
+.site-header .title-block h1 {
+  font-family: 'Cormorant Garamond', serif; font-size: clamp(2.4rem, 5vw, 4rem);
+  font-weight: 300; letter-spacing: -0.02em; line-height: 1; color: var(--ink);
+}
+.site-header .title-block h1 em { font-style: italic; color: var(--teal); }
+.site-header .title-block .subtitle {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; text-transform: uppercase;
+  letter-spacing: 0.14em; color: var(--ink3); margin-top: 0.5rem;
+}
+.header-right { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+.header-formula {
+  font-size: 1.2rem; color: var(--ink2); white-space: nowrap;
+  border-left: 3px solid var(--teal); padding-left: 1rem;
+}
+
+/* ── NAV TABS ── */
+.tab-nav {
+  display: flex; border-bottom: 1px solid var(--rule); background: var(--bg);
+  position: sticky; top: 0; z-index: 50; overflow-x: auto; scrollbar-width: none;
+}
+.tab-nav::-webkit-scrollbar { display: none; }
+.tab-btn {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--ink3); background: none; border: none;
+  border-bottom: 2px solid transparent; padding: 0.9rem 1.4rem; cursor: pointer;
+  white-space: nowrap; transition: color 0.15s, border-color 0.15s; flex-shrink: 0;
+}
+.tab-btn:hover { color: var(--ink); }
+.tab-btn.active { color: var(--teal); border-bottom-color: var(--teal); }
+
+/* ── PANELS ── */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── INTERACTIVE ── */
+.interactive-layout {
+  display: grid; grid-template-columns: 1fr 350px; gap: 0; min-height: 600px;
+}
+@media (max-width: 820px) { .interactive-layout { grid-template-columns: 1fr; } }
+.viz-pane { border-right: 1px solid var(--rule); padding: 1.5rem; position: relative; }
+.canvas-container {
+  position: relative; background: var(--canvas-bg); border: 1px solid var(--rule);
+  border-radius: 2px; overflow: hidden;
+}
+canvas { display: block; width: 100%; height: auto; }
+.viz-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; margin-top: 1rem; }
+.stat-chip { background: var(--bg-card); border: 1px solid var(--rule); padding: 0.7rem 0.8rem; border-radius: 2px; }
+.stat-chip .lbl { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink3); }
+.stat-chip .val { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-style: italic; color: var(--gold); line-height: 1.2; margin-top: 0.1rem; }
+.stat-chip.exact .val { color: var(--teal); }
+.stat-chip.err .val { color: var(--rose); font-size: 1.2rem; }
+
+.ctrl-pane { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.4rem; overflow-y: auto; }
+.ctrl-head {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; text-transform: uppercase;
+  letter-spacing: 0.12em; color: var(--ink3); margin-bottom: 0.8rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--rule);
+}
+.anno-toggle { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; margin-bottom: 0.5rem; }
+.anno-toggle input[type=checkbox] { width: 14px; height: 14px; accent-color: var(--teal); cursor: pointer; }
+.anno-toggle span { font-size: 0.78rem; color: var(--ink2); }
+.btn-group { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.grp-btn {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; padding: 0.4rem 0.7rem;
+  background: var(--bg-card); border: 1px solid var(--rule); color: var(--ink3); border-radius: 2px;
+  cursor: pointer; transition: all 0.12s;
+}
+.grp-btn:hover { border-color: var(--ink2); color: var(--ink2); }
+.grp-btn.active { background: var(--teal); border-color: var(--teal); color: #fff; }
+.grp-btn.fn-btn { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 0.95rem; }
+.grp-btn.fn-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+.slider-block { margin-bottom: 0.9rem; }
+.slider-label { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--ink2); margin-bottom: 0.4rem; }
+.slider-label .sval { font-family: 'JetBrains Mono', monospace; color: var(--teal); }
+input[type=range] { -webkit-appearance: none; width: 100%; height: 2px; background: var(--rule); border-radius: 1px; outline: none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%; background: var(--teal); cursor: pointer; border: 2px solid var(--bg); box-shadow: 0 0 0 1px var(--teal); }
+
+.inline-formula {
+  background: var(--bg-card); border: 1px solid var(--rule); border-left: 3px solid var(--teal);
+  padding: 0.8rem 1rem; color: var(--ink2); border-radius: 0 2px 2px 0; overflow-x: auto;
+}
+
+/* ── CONTENT PANELS ── */
+.theory-body, .intuition-body, .steps-body, .gloss-body { max-width: 780px; margin: 0 auto; padding: 3rem 2rem 4rem; }
+h2 { font-family: 'Cormorant Garamond', serif; font-size: 2rem; font-weight: 400; color: var(--ink); margin: 2.5rem 0 1rem; border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem; }
+h2:first-child { margin-top: 0; }
+h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; font-style: italic; font-weight: 400; color: var(--teal); margin: 1.8rem 0 0.6rem; }
+p { color: var(--ink2); margin-bottom: 1rem; }
+
+.definition, .insight-box, .warning-box { background: var(--bg-card); border: 1px solid var(--rule); padding: 1.2rem 1.5rem; margin: 1.5rem 0; border-radius: 0 3px 3px 0; }
+.definition { border-left: 4px solid var(--gold); }
+.insight-box { border-left: 4px solid var(--teal); background: rgba(42,122,106,0.05); }
+.warning-box { border-left: 4px solid var(--rose); background: rgba(138,42,58,0.05); }
+.def-title, .ins-title, .warn-title { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 0.6rem; }
+.def-title { color: var(--gold); }
+.ins-title { color: var(--teal); }
+.warn-title { color: var(--rose); }
+
+.math-display {
+  text-align: center; padding: 1.4rem 1rem; background: var(--bg2); border: 1px solid var(--rule);
+  border-radius: 3px; margin: 1.5rem 0; color: var(--ink); overflow-x: auto;
+}
+
+.note-box { background: var(--bg2); border: 1px solid var(--rule); padding: 1rem 1.2rem; border-radius: 3px; margin: 1.2rem 0; font-size: 0.88rem; color: var(--ink3); }
+
+.analogy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0; }
+@media (max-width: 600px) { .analogy-grid { grid-template-columns: 1fr; } }
+.analogy-card { background: var(--bg-card); border: 1px solid var(--rule); padding: 1.2rem; border-radius: 3px; }
+.analogy-card .ac-label { font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink3); margin-bottom: 0.5rem; }
+.analogy-card .ac-title { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1.1rem; color: var(--teal); margin-bottom: 0.5rem; }
+
+/* ── STEP-BY-STEP ── */
+.step-card { display: grid; grid-template-columns: 56px 1fr; gap: 1.2rem; margin-bottom: 2.5rem; position: relative; }
+.step-card::before { content: ''; position: absolute; left: 27px; top: 56px; bottom: -2.5rem; width: 1px; background: var(--rule); }
+.step-card:last-child::before { display: none; }
+.step-num { width: 56px; height: 56px; border-radius: 50%; background: var(--teal); color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; font-style: italic; flex-shrink: 0; }
+.step-content .math-inline { background: var(--bg2); border: 1px solid var(--rule); border-left: 3px solid var(--teal); padding: 0.7rem 1rem; border-radius: 0 2px 2px 0; margin: 0.8rem 0; color: var(--ink2); overflow-x: auto; }
+.step-content .highlight { background: rgba(42,122,106,0.1); border: 1px solid rgba(42,122,106,0.3); padding: 0.7rem 1rem; border-radius: 3px; margin: 0.8rem 0; font-size: 0.88rem; color: var(--ink2); }
+
+/* ── LIMIT PROCESS (CONVERGENCE) ── */
+.conv-body { padding: 2rem; max-width: 900px; margin: 0 auto; }
+.conv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
+@media (max-width: 640px) { .conv-grid { grid-template-columns: 1fr; } }
+.conv-card { background: var(--bg-card); border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
+.conv-card-head { padding: 0.8rem 1rem; border-bottom: 1px solid var(--rule); font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink3); background: var(--bg2); }
+.conv-table-wrap { margin-top: 1.5rem; background: var(--bg-card); border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
+.conv-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.conv-table th { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; text-transform: uppercase; color: var(--ink3); padding: 0.6rem 1rem; background: var(--bg2); border-bottom: 1px solid var(--rule); text-align: left; }
+.conv-table td { padding: 0.5rem 1rem; border-bottom: 1px solid var(--rule); color: var(--ink2); font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; }
+.conv-table td.good { color: var(--teal); }
+
+/* ── GLOSSARY ── */
+.gloss-item { display: grid; grid-template-columns: 200px 1fr; gap: 1rem; padding: 1.2rem 0; border-bottom: 1px solid var(--rule); align-items: start; }
+.gloss-item:last-child { border-bottom: none; }
+.gloss-term { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1.2rem; color: var(--teal); }
+.gloss-def { color: var(--ink2); font-size: 0.9rem; }
+.symbol { display: inline-block; font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1rem; color: var(--ink); background: var(--bg2); padding: 0 0.3rem; border-radius: 2px; margin: 0 1px; }
+@media (max-width: 520px) { .gloss-item { grid-template-columns: 1fr; gap: 0.3rem; } }
+
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="title-block">
+    <h1>The <em>Derivative</em> Concept</h1>
+    <div class="subtitle">A complete, interactive exploration of instantaneous change</div>
+  </div>
+  <div class="header-right">
+    <div class="header-formula">
+      $$ f'(x) = \lim_{h \to 0} \frac{f(x+h) - f(x)}{h} $$
+    </div>
+    <button id="themeToggle" class="grp-btn">🌓 Theme</button>
+  </div>
+</header>
+
+<nav class="tab-nav">
+  <button class="tab-btn active" data-tab="interactive">① Interactive</button>
+  <button class="tab-btn" data-tab="intuition">② Deep Intuition</button>
+  <button class="tab-btn" data-tab="theory">③ Theory</button>
+  <button class="tab-btn" data-tab="steps">④ Step-by-Step</button>
+  <button class="tab-btn" data-tab="convergence">⑤ The Limit Process</button>
+  <button class="tab-btn" data-tab="glossary">⑥ Glossary</button>
+</nav>
+
+<div class="tab-panel active" id="tab-interactive">
+  <div class="interactive-layout">
+    <div class="viz-pane">
+      <div class="canvas-container">
+        <canvas id="mainCanvas" width="680" height="460"></canvas>
+      </div>
+      <div class="viz-stats">
+        <div class="stat-chip">
+          <div class="lbl">Secant Slope ($m$)</div>
+          <div class="val" id="secantVal">—</div>
+        </div>
+        <div class="stat-chip exact">
+          <div class="lbl">Tangent Slope $f'(x)$</div>
+          <div class="val" id="tangentVal">—</div>
+        </div>
+        <div class="stat-chip err">
+          <div class="lbl">|Error|</div>
+          <div class="val" id="errVal">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ctrl-pane">
+
+      <div class="ctrl-section">
+        <div class="ctrl-head">Function $f(x)$</div>
+        <div class="btn-group">
+          <button class="grp-btn fn-btn active" data-fn="0">$x^2$</button>
+          <button class="grp-btn fn-btn" data-fn="1">$\sin(x)$</button>
+          <button class="grp-btn fn-btn" data-fn="2">$x^3 - 2x$</button>
+          <button class="grp-btn fn-btn" data-fn="3">$e^x / 4$</button>
+          <button class="grp-btn fn-btn" data-fn="4">$\sqrt{x}$</button>
+        </div>
+      </div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-head">Evaluation Point ($x$)</div>
+        <div class="slider-block">
+          <div class="slider-label">
+            <span>$x$ (base point)</span>
+            <span class="sval" id="xVal">1.0</span>
+          </div>
+          <input type="range" id="xSlider" min="-3" max="3" step="0.1" value="1.0">
+        </div>
+      </div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-head">Step Size ($h$)</div>
+        <div class="slider-block">
+          <div class="slider-label">
+            <span>$h$ (distance to second point)</span>
+            <span class="sval" id="hVal">1.50</span>
+          </div>
+          <input type="range" id="hSlider" min="0.01" max="3" step="0.01" value="1.5">
+        </div>
+        <div style="margin-top:0.8rem; font-size:0.78rem; color:var(--ink3); font-style:italic;">
+          As $h \to 0$, the secant line approaches the true tangent line.
+        </div>
+      </div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-head">Annotations</div>
+        <label class="anno-toggle">
+          <input type="checkbox" id="showSecant" checked>
+          <span>Show Secant Line (Average Rate)</span>
+        </label>
+        <label class="anno-toggle">
+          <input type="checkbox" id="showTangent" checked>
+          <span>Show Tangent Line (Instant Rate)</span>
+        </label>
+        <label class="anno-toggle">
+          <input type="checkbox" id="showTriangle" checked>
+          <span>Show $\Delta x$ and $\Delta y$ Triangle</span>
+        </label>
+      </div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-head">Live Difference Quotient</div>
+        <div class="inline-formula" id="liveFormula">
+          </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-intuition">
+  <div class="intuition-body">
+
+    <h2>The Core Problem: Instantaneous Change</h2>
+
+    <p>In algebra, computing a rate of change is straightforward if you have two distinct points in time. If you drive 100 miles in 2 hours, your average speed is 50 miles per hour. This is the slope of a line connecting two points: <em>change in distance divided by change in time</em> ($\frac{\Delta y}{\Delta x}$).</p>
+
+    <p>But what does it mean to have a speed at a <em>single, precise instant</em>? If you look at your speedometer at exactly 2:00 PM, it reads 65 mph. How can you travel 65 miles in zero hours? This echoes Zeno’s paradox of the arrow: at any frozen instant of time, an arrow is motionless. How can motion exist if at every instant, no time passes and therefore no distance is covered?</p>
+
+    <p>The derivative is mathematics' profound answer to this paradox. We cannot calculate a rate using exactly zero time, because division by zero ($\frac{0}{0}$) is mathematically undefined. Instead, we calculate the rate over a tiny interval of time, $h$. Then, we ask a conceptual question: what exact numerical value is this average rate <em>approaching</em> as that interval $h$ shrinks infinitely close to zero?</p>
+
+    <div class="insight-box">
+      <div class="ins-title">The Illusion of "Instant"</div>
+      <p>The derivative doesn't actually divide by zero. It studies the <em>trend</em> of the average rate as the window of measurement collapses. The instant rate is the destination that the average rates are pointing toward.</p>
+    </div>
+
+    <h2>The Secant vs. The Tangent</h2>
+
+    <p>Geometrically, this translates to drawing lines on a curve. A line crossing a curve through two distinct points is called a <strong>secant line</strong>. Its slope represents the average rate of change between those points.</p>
+
+    <p>A line that just "kisses" the curve at a single point, matching its direction perfectly, is the <strong>tangent line</strong>. Its slope is the instantaneous rate of change. The central drama of differential calculus is turning a secant line into a tangent line by sliding the second point toward the first. The limit is the mathematical engine that performs this slide seamlessly.</p>
+
+    <h2>Local Linearity: The Magnifying Glass</h2>
+
+    <p>Another powerful way to understand the derivative is through the concept of <strong>local linearity</strong>. If you look at the globe from space, it looks curved. If you stand in a field, the earth looks flat. The closer you zoom in on a smooth curve, the more it resembles a straight line.</p>
+
+    <p>The derivative is simply the slope of that zoomed-in line. When we say $f'(x) = 2$, we mean that if you put a powerful mathematical microscope on the graph at point $x$, you will see a straight line that goes up 2 units for every 1 unit it goes right.</p>
+
+    <div class="analogy-grid">
+      <div class="analogy-card">
+        <div class="ac-label">Physics</div>
+        <div class="ac-title">Speed and Acceleration</div>
+        <p>If $s(t)$ is your position, $s'(t)$ is your instantaneous velocity (speedometer reading), and $s''(t)$ is your acceleration (feeling pushed into your seat). Calculus links abstract position directly to human physical sensation.</p>
+      </div>
+      <div class="analogy-card">
+        <div class="ac-label">Geometry</div>
+        <div class="ac-title">The Expanding Circle</div>
+        <p>The area of a circle is $A = \pi r^2$. Its derivative with respect to radius is $\frac{dA}{dr} = 2\pi r$. Notice something? The derivative of the area is exactly the circumference! Adding a tiny layer of area $dr$ to a circle is like wrapping a string of length $2\pi r$ around it.</p>
+      </div>
+      <div class="analogy-card">
+        <div class="ac-label">Economics</div>
+        <div class="ac-title">Marginal Cost</div>
+        <p>If $C(x)$ is the cost to produce $x$ items, $C'(x)$ is the "marginal cost" — roughly the cost to produce just one additional item. It measures the financial slope at your current production level.</p>
+      </div>
+      <div class="analogy-card">
+        <div class="ac-label">Optimization</div>
+        <div class="ac-title">Finding the Peak</div>
+        <p>At the very peak of a mountain, the ground is momentarily flat. In calculus, when $f'(x) = 0$, the tangent line is completely horizontal. This is how machine learning algorithms find minimum errors (Gradient Descent).</p>
+      </div>
+    </div>
+
+    <h2>Continuity vs. Differentiability</h2>
+
+    <p>For a function to have a derivative (to be <em>differentiable</em>) at a point, the curve must be "smooth." But what does smooth mean? It implies two things:</p>
+    <ol>
+      <li><strong>Continuity:</strong> The graph cannot have holes, jumps, or vertical asymptotes. You must be able to draw it without lifting your pen.</li>
+      <li><strong>No Sharp Corners:</strong> An absolute value graph like $f(x) = |x|$ is continuous, but it has a sharp $V$-shaped corner at $x=0$. No matter how much you zoom in, it remains a sharp corner; it never resolves into a single straight line. Thus, the derivative does not exist at $x=0$.</li>
+    </ol>
+
+    <div class="warning-box">
+      <div class="warn-title">The Monsters of Calculus</div>
+      <p>In the 19th century, Karl Weierstrass shocked the mathematical world by discovering a function that is continuous <em>everywhere</em>, but differentiable <em>nowhere</em>. It is infinitely jagged. (For the exact fractal dimension of nowhere-differentiable curves, I don't know, but the intuition is that they have 'corners' at every single microscopic point, making tangent lines impossible to draw).</p>
+    </div>
+
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-theory">
+  <div class="theory-body">
+
+    <h2>What is the Derivative?</h2>
+
+    <p>The <strong>derivative</strong> of a function measures its sensitivity to change. It is the exact rate at which the function's output changes relative to changes in its input at a specific point.</p>
+
+    <div class="definition">
+      <div class="def-title">Formal Limit Definition</div>
+      <p>The derivative of a function $f$ at a point $x$, denoted by $f'(x)$, is defined by the limit of the difference quotient:</p>
+    </div>
+
+    <div class="math-display">
+      $$ f'(x) = \lim_{h \to 0} \frac{f(x + h) - f(x)}{h} $$
+    </div>
+
+    <p>Provided this limit exists. If it does exist, we say $f$ is <strong>differentiable</strong> at $x$.</p>
+
+    <h3>One-Sided Derivatives</h3>
+    <p>Because the derivative is a limit, we can approach $h=0$ from positive values (the right) or negative values (the left). For the global derivative to exist, both the left-hand derivative and the right-hand derivative must exist and equal exactly the same number.</p>
+    
+    <div class="math-display">
+      $$ \lim_{h \to 0^+} \frac{f(x+h) - f(x)}{h} = \lim_{h \to 0^-} \frac{f(x+h) - f(x)}{h} $$
+    </div>
+    
+    <p>When these limits disagree, the function has a sharp corner or cusp, as seen in $f(x) = |x|$ at $x=0$, where the right slope is $1$ and the left slope is $-1$.</p>
+
+    <h2>Notations</h2>
+
+    <p>Calculus was co-invented independently by Isaac Newton and Gottfried Wilhelm Leibniz. This resulted in two dominant notations, both widely used today because they emphasize different aspects of the concept.</p>
+
+    <p><strong>Newton/Lagrange Notation: $f'(x)$</strong><br>
+    Pronounced "f prime of x". Emphasizes that the derivative is a new, standalone function born from the original function $f$. It keeps the notation compact and functional.</p>
+
+    <p><strong>Leibniz Notation: $\frac{dy}{dx}$</strong><br>
+    Pronounced "d y, d x". It explicitly reminds us that the derivative is born from a ratio of changes: a tiny change in $y$ ($dy$) divided by a tiny change in $x$ ($dx$). While it is not technically a fraction of real numbers, it behaves exactly like one in rules like the Chain Rule: $\frac{dy}{dx} = \frac{dy}{du} \cdot \frac{du}{dx}$.</p>
+
+    <h2>Common Derivative Rules</h2>
+    
+    <p>Applying the limit definition every time is exhausting. Mathematicians have proven shortcut rules based directly on the limit definition. Here are a few foundational ones:</p>
+
+    <table style="width:100%; border-collapse:collapse; margin:1.5rem 0; font-size:0.95rem;">
+      <thead>
+        <tr>
+          <th style="font-family:'JetBrains Mono'; color:var(--ink3); padding:0.6rem; border-bottom:2px solid var(--rule); text-align:left;">Rule Name</th>
+          <th style="font-family:'JetBrains Mono'; color:var(--ink3); padding:0.6rem; border-bottom:2px solid var(--rule); text-align:left;">Function $f(x)$</th>
+          <th style="font-family:'JetBrains Mono'; color:var(--ink3); padding:0.6rem; border-bottom:2px solid var(--rule); text-align:left;">Derivative $f'(x)$</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding:0.8rem; border-bottom:1px solid var(--rule);">Power Rule</td>
+          <td style="padding:0.8rem; border-bottom:1px solid var(--rule);">$x^n$</td>
+          <td style="padding:0.8rem; border-bottom:1px solid var(--rule);">$n \cdot x^{n-1}$</td>
+        </tr>
+        <tr>
+          <td style="padding:0.8rem; border-bottom:1px solid var(--rule);">Exponential</td>
+          <td style="padding:0.8rem; border-bottom:1px solid var(--rule);">$e^x$</td>
+          <td style="padding:0.8rem; border-bottom:1px solid var(--rule);">$e^x$</td>
+        </tr>
+        <tr>
+          <td style="padding:0.8rem; border-bottom:1px solid var(--rule);">Sine</td>
+          <td style="padding:0.8rem; border-bottom:1px solid var(--rule);">$\sin(x)$</td>
+          <td style="padding:0.8rem; border-bottom:1px solid var(--rule);">$\cos(x)$</td>
+        </tr>
+        <tr>
+          <td style="padding:0.8rem; border-bottom:1px solid var(--rule);">Linear</td>
+          <td style="padding:0.8rem; border-bottom:1px solid var(--rule);">$mx + b$</td>
+          <td style="padding:0.8rem; border-bottom:1px solid var(--rule);">$m$</td>
+        </tr>
+      </tbody>
+    </table>
+
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-steps">
+  <div class="steps-body">
+
+    <h2 style="margin-top: 0;">Example 1: Polynomials</h2>
+    <div style="margin-bottom:2rem;">
+      <p style="color:var(--ink3); font-size:0.85rem; font-style:italic;">Find the derivative of $f(x) = x^2$ at $x = 3$ using the limit definition.</p>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h3>Start with the definition</h3>
+        <p>We want to find $f'(3)$ for the function $f(x) = x^2$. We set up the limit of the difference quotient:</p>
+        <div class="math-inline">$$ f'(3) = \lim_{h \to 0} \frac{f(3 + h) - f(3)}{h} $$</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h3>Substitute the function</h3>
+        <p>Since $f(x) = x^2$, we plug in $(3+h)$ and $3$:</p>
+        <div class="math-inline">$$ \lim_{h \to 0} \frac{(3 + h)^2 - 3^2}{h} $$</div>
+        <div class="highlight">Notice that if we just plug in $h=0$ right now, we get $\frac{3^2 - 3^2}{0} = \frac{0}{0}$, which is undefined. We must simplify algebraically to remove the $h$ from the denominator.</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h3>Expand the numerator</h3>
+        <p>Expand $(3+h)^2$ using FOIL algebra: $(3+h)(3+h) = 9 + 6h + h^2$.</p>
+        <div class="math-inline">$$ \lim_{h \to 0} \frac{(9 + 6h + h^2) - 9}{h} $$</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h3>Cancel common terms</h3>
+        <p>The constants in the numerator cancel out exactly ($9 - 9 = 0$).</p>
+        <div class="math-inline">$$ \lim_{h \to 0} \frac{6h + h^2}{h} $$</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <h3>Factor and divide by h</h3>
+        <p>Factor out an $h$ from the numerator. Because we are taking a limit as $h$ approaches $0$ (but never strictly equals $0$), we are mathematically permitted to cancel the $h$ from the top and bottom.</p>
+        <div class="math-inline">$$ \lim_{h \to 0} \frac{h(6 + h)}{h} = \lim_{h \to 0} (6 + h) $$</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">6</div>
+      <div class="step-content">
+        <h3>Evaluate the limit</h3>
+        <p>Now that the division-by-zero threat is gone, we can safely let $h \to 0$ by direct substitution.</p>
+        <div class="math-inline">$$ 6 + 0 = \mathbf{6} $$</div>
+        <div class="highlight">
+          <strong>Conclusion:</strong> The instantaneous rate of change (the slope of the tangent line) of the curve $y=x^2$ at the exact point $x=3$ is exactly <strong>6</strong>.
+        </div>
+      </div>
+    </div>
+
+    <h2 style="margin-top: 3rem;">Example 2: Fractions and Algebra</h2>
+    <div style="margin-bottom:2rem;">
+      <p style="color:var(--ink3); font-size:0.85rem; font-style:italic;">Find the general derivative of $f(x) = \frac{1}{x}$.</p>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h3>Set up the Difference Quotient</h3>
+        <p>Apply the definition of the derivative for an arbitrary $x$:</p>
+        <div class="math-inline">$$ \lim_{h \to 0} \frac{\frac{1}{x+h} - \frac{1}{x}}{h} $$</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h3>Find a Common Denominator</h3>
+        <p>Combine the fractions in the numerator. The common denominator is $x(x+h)$.</p>
+        <div class="math-inline">$$ \lim_{h \to 0} \frac{\frac{x - (x+h)}{x(x+h)}}{h} $$</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h3>Simplify and Cancel</h3>
+        <p>The numerator simplifies to $-h$. The $h$ on top cancels with the $h$ dividing the whole expression.</p>
+        <div class="math-inline">$$ \lim_{h \to 0} \frac{-h}{h \cdot x(x+h)} = \lim_{h \to 0} \frac{-1}{x(x+h)} $$</div>
+        <p>Letting $h \to 0$ gives $f'(x) = -\frac{1}{x^2}$. This confirms the Power Rule for $x^{-1}$.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-convergence">
+  <div class="conv-body">
+
+    <h2 style="font-family:'Cormorant Garamond',serif; font-size:1.8rem; font-weight:400; margin-bottom:0.5rem;">The Limit Process</h2>
+    <p style="color:var(--ink3); font-size:0.88rem; margin-bottom:1.5rem;">Observe how the secant slope progressively converges to the exact tangent slope as $h \to 0$. Selected point: $x = 1.0$ for $f(x) = x^2$.</p>
+
+    <div class="conv-grid">
+      <div class="conv-card">
+        <div class="conv-card-head">Error vs Step Size ($h$)</div>
+        <canvas id="convCanvas1" width="420" height="280"></canvas>
+      </div>
+      <div class="conv-card">
+        <div class="conv-card-head">Secant Slope Approaching Exact Value</div>
+        <canvas id="convCanvas2" width="420" height="280"></canvas>
+      </div>
+    </div>
+
+    <div class="conv-table-wrap">
+      <table class="conv-table" id="convTable">
+        <thead>
+          <tr>
+            <th>Step size ($h$)</th>
+            <th>Point 2 ($x+h$)</th>
+            <th>$f(x+h)$</th>
+            <th>Secant Slope ($m$)</th>
+            <th>Exact $f'(x)$</th>
+            <th>Error</th>
+          </tr>
+        </thead>
+        <tbody id="convTableBody"></tbody>
+      </table>
+    </div>
+
+    <div style="margin-top:1.5rem; background:var(--bg-card); border:1px solid var(--rule); padding:1.2rem 1.5rem; border-radius:3px;">
+      <h3 style="font-family:'Cormorant Garamond',serif; font-size:1.2rem; font-style:italic; color:var(--teal); margin-bottom:0.6rem;">Understanding the Convergence Rate</h3>
+      <p style="font-size:0.88rem; color:var(--ink2);">
+        Notice that for $f(x)=x^2$, the secant slope algebraic formula evaluates to exactly $(2x + h)$. Since the exact derivative is $2x$, the error is exactly $h$. As $h$ is cut in half, the error is exactly cut in half. <br><br>
+        For general functions, Taylor's Theorem tells us that $f(x+h) \approx f(x) + hf'(x) + \frac{h^2}{2}f''(x)$. Thus, the difference quotient $\frac{f(x+h)-f(x)}{h}$ evaluates to $f'(x) + \frac{h}{2}f''(x)$. The error term is directly proportional to $h$ (first-order convergence), guided by the function's second derivative (concavity).
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-glossary">
+  <div class="gloss-body">
+    <h2 style="font-family:'Cormorant Garamond',serif; font-size:1.8rem; font-weight:400; margin-bottom:1.5rem; border-bottom:2px solid var(--ink); padding-bottom:0.5rem;">Glossary of Terms</h2>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Derivative $f'(x)$</div>
+      <div class="gloss-def">The instantaneous rate of change of a function. Geometrically, it is the exact slope of the tangent line to the function at a specific point.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Secant Line</div>
+      <div class="gloss-def">A straight line connecting two distinct points on a curve. Its slope represents the <em>average</em> rate of change between those two points.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Tangent Line</div>
+      <div class="gloss-def">A straight line that touches a curve at a single local point without crossing it there, matching the curve's direction and steepness perfectly.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Difference Quotient</div>
+      <div class="gloss-def">The formula <span class="symbol">$$ \frac{f(x+h) - f(x)}{h} $$</span>. It is the algebraic expression used to calculate the exact slope of the secant line.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Limit</div>
+      <div class="gloss-def">The fundamental concept of calculus. It describes the value that a function or sequence "approaches" as the input approaches some specific value. The derivative relies fundamentally on taking the limit as $h \to 0$.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Continuity</div>
+      <div class="gloss-def">A property of a function meaning it has no abrupt changes, breaks, asymptotes, or holes in its graph. A necessary, but not sufficient, condition for differentiability.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Differentiable</div>
+      <div class="gloss-def">A function is differentiable at a point if it has a defined derivative there. This requires the curve to be continuous and "smooth" (meaning no sharp corners, cusps, or vertical tangents).</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Local Linearity</div>
+      <div class="gloss-def">The geometric principle that if you zoom in closely enough on a differentiable curve, it will look indistinguishable from a straight line.</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ═════════════ DATA ═════════════ */
+const FNS = [
+  { label:'x²',    f: x=>x*x,           df: x=>2*x },
+  { label:'sin x', f: x=>Math.sin(x),    df: x=>Math.cos(x) },
+  { label:'x³−2x', f: x=>x**3 - 2*x,     df: x=>3*x*x - 2 },
+  { label:'eˣ/4',  f: x=>Math.exp(x)/4, df: x=>Math.exp(x)/4 },
+  { label:'√x',    f: x=>x>=0?Math.sqrt(x):NaN, df: x=>x>0?0.5/Math.sqrt(x):NaN },
+];
+
+let S = { fnIdx:0, x:1.0, h:1.5, showSecant:true, showTangent:true, showTriangle:true };
+
+/* ═════════════ THEME TOGGLE ═════════════ */
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const root = document.documentElement;
+  if (root.getAttribute('data-theme') === 'dark') {
+    root.removeAttribute('data-theme');
+  } else {
+    root.setAttribute('data-theme', 'dark');
+  }
+  drawMain();
+  if (document.getElementById('tab-convergence').classList.contains('active')) {
+    drawConvergence();
+  }
+});
+
+/* ═════════════ MAIN CANVAS ═════════════ */
+function setupHighDPICanvas(canvasId, cssWidth, cssHeight) {
+  const cv = document.getElementById(canvasId);
+  const ctx = cv.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = cssWidth * dpr;
+  cv.height = cssHeight * dpr;
+  cv.style.width = cssWidth + 'px';
+  cv.style.height = cssHeight + 'px';
+  ctx.scale(dpr, dpr);
+  return { cv, ctx, W: cssWidth, H: cssHeight };
+}
+
+const { cv, ctx, W, H } = setupHighDPICanvas('mainCanvas', 680, 460);
+const PAD = {t:28,r:24,b:44,l:52};
+
+function drawMain(){
+  const {fnIdx, x:bx, h} = S;
+  const f = FNS[fnIdx].f;
+  const df = FNS[fnIdx].df;
+  
+  const rs = getComputedStyle(document.documentElement);
+  const cCanvasBg = rs.getPropertyValue('--canvas-bg').trim() || '#ffffff';
+  const cGridLine = rs.getPropertyValue('--grid-line').trim() || '#f0ede6';
+  const cAxLine = rs.getPropertyValue('--ax-line').trim() || '#b0aa98';
+  const cAxText = rs.getPropertyValue('--ax-text').trim() || '#9a9280';
+  const cTeal = rs.getPropertyValue('--teal').trim() || '#2a7a6a';
+  const cRose = rs.getPropertyValue('--rose').trim() || '#8a2a3a';
+  const cBlue = rs.getPropertyValue('--blue').trim() || '#2a4a7a';
+
+  // Define viewport boundaries
+  const xmin = -4, xmax = 4;
+  let ymin = -4, ymax = 4;
+
+  let yVals = [];
+  for(let i=0; i<=100; i++){
+    let val = f(xmin + (xmax-xmin)*i/100);
+    if(isFinite(val)) yVals.push(val);
+  }
+  if(yVals.length > 0) {
+      ymin = Math.min(-2, ...yVals) - 1;
+      ymax = Math.max(2, ...yVals) + 1;
+  }
+
+  const toCanvas = (wx,wy) => {
+    const innerW = W - PAD.l - PAD.r, innerH = H - PAD.t - PAD.b;
+    return [PAD.l+(wx-xmin)/(xmax-xmin)*innerW, PAD.t+(1-(wy-ymin)/(ymax-ymin))*innerH];
+  };
+
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=cCanvasBg;
+  ctx.fillRect(0,0,W,H);
+
+  ctx.strokeStyle=cGridLine;
+  ctx.lineWidth=1;
+  for(let gi=Math.ceil(ymin); gi<=Math.floor(ymax); gi++){
+    const [,cy]=toCanvas(0,gi);
+    ctx.beginPath();ctx.moveTo(PAD.l,cy);ctx.lineTo(W-PAD.r,cy);ctx.stroke();
+  }
+  for(let gi=Math.ceil(xmin); gi<=Math.floor(xmax); gi++){
+    const [cx,]=toCanvas(gi,0);
+    ctx.beginPath();ctx.moveTo(cx,PAD.t);ctx.lineTo(cx,H-PAD.b);ctx.stroke();
+  }
+
+  const [,axY]=toCanvas(0,0);
+  const [ayX]=toCanvas(0,0);
+  ctx.strokeStyle=cAxLine; ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(PAD.l,axY);ctx.lineTo(W-PAD.r,axY);ctx.stroke();
+  if(ayX>=PAD.l&&ayX<=W-PAD.r){
+    ctx.beginPath();ctx.moveTo(ayX,PAD.t);ctx.lineTo(ayX,H-PAD.b);ctx.stroke();
+  }
+
+  ctx.strokeStyle=cTeal; ctx.lineWidth=3; ctx.lineJoin='round';
+  ctx.beginPath(); let started=false;
+  for(let i=0;i<=500;i++){
+    const wx=xmin+(xmax-xmin)*i/500, wy=f(wx);
+    if(!isFinite(wy)){started=false;continue;}
+    const [cx,cy]=toCanvas(wx,wy);
+    if(!started){ctx.moveTo(cx,cy);started=true;}else ctx.lineTo(cx,cy);
+  }
+  ctx.stroke();
+
+  let y0 = f(bx);
+  let y1 = f(bx+h);
+  
+  if(S.showTriangle && isFinite(y0) && isFinite(y1)){
+      const [cx0, cy0] = toCanvas(bx, y0);
+      const [cx1, cy1] = toCanvas(bx+h, y1);
+      
+      ctx.strokeStyle = cAxText; ctx.lineWidth = 2; ctx.setLineDash([4,4]);
+      ctx.beginPath(); ctx.moveTo(cx0, cy0); ctx.lineTo(cx1, cy0); ctx.lineTo(cx1, cy1); ctx.stroke();
+      ctx.setLineDash([]);
+      
+      ctx.fillStyle = cAxText; ctx.font = 'italic 14px Cormorant Garamond,serif';
+      ctx.textAlign = 'center';
+      if(Math.abs(cx1-cx0) > 20) ctx.fillText('Δx', (cx0+cx1)/2, cy0 + (y1>y0 ? 18 : -10));
+      ctx.textAlign = 'left';
+      if(Math.abs(cy1-cy0) > 20) ctx.fillText('Δy', cx1 + 6, (cy0+cy1)/2);
+  }
+
+  if(S.showTangent && isFinite(y0)){
+      let m = df(bx);
+      if(isFinite(m)) {
+          const drawLine = (slope) => {
+              let px1 = xmin, py1 = y0 + slope*(xmin - bx);
+              let px2 = xmax, py2 = y0 + slope*(xmax - bx);
+              const [cx1, cy1] = toCanvas(px1, py1);
+              const [cx2, cy2] = toCanvas(px2, py2);
+              ctx.beginPath(); ctx.moveTo(cx1, cy1); ctx.lineTo(cx2, cy2); ctx.stroke();
+          };
+          ctx.strokeStyle = cBlue; ctx.lineWidth = 2; drawLine(m);
+      }
+  }
+
+  if(S.showSecant && isFinite(y0) && isFinite(y1)){
+      let m = (y1 - y0) / h;
+      const drawLine = (slope) => {
+          let px1 = xmin, py1 = y0 + slope*(xmin - bx);
+          let px2 = xmax, py2 = y0 + slope*(xmax - bx);
+          const [cx1, cy1] = toCanvas(px1, py1);
+          const [cx2, cy2] = toCanvas(px2, py2);
+          ctx.beginPath(); ctx.moveTo(cx1, cy1); ctx.lineTo(cx2, cy2); ctx.stroke();
+      };
+      ctx.strokeStyle = cRose; ctx.lineWidth = 2; ctx.setLineDash([6,4]); drawLine(m); ctx.setLineDash([]);
+  }
+
+  if(isFinite(y0)){
+      const [cx0, cy0] = toCanvas(bx, y0);
+      ctx.fillStyle=cBlue; ctx.beginPath();ctx.arc(cx0,cy0,5,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle=cCanvasBg; ctx.lineWidth=1.5; ctx.stroke();
+  }
+  if(isFinite(y1)){
+      const [cx1, cy1] = toCanvas(bx+h, y1);
+      ctx.fillStyle=cRose; ctx.beginPath();ctx.arc(cx1,cy1,5,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle=cCanvasBg; ctx.lineWidth=1.5; ctx.stroke();
+  }
+
+  updateStats();
+}
+
+function updateStats(){
+  const {fnIdx, x, h}=S;
+  const f = FNS[fnIdx].f;
+  const df = FNS[fnIdx].df;
+  
+  let exact = df(x);
+  let y0 = f(x);
+  let y1 = f(x+h);
+  let approx = (y1 - y0) / h;
+  let err = Math.abs(approx - exact);
+  
+  document.getElementById('tangentVal').textContent=isFinite(exact)?exact.toFixed(4):'—';
+  document.getElementById('secantVal').textContent=isFinite(approx)?approx.toFixed(4):'—';
+  document.getElementById('errVal').textContent=isFinite(err)?err.toFixed(4):'—';
+
+  const liveFormulaDiv = document.getElementById('liveFormula');
+  liveFormulaDiv.innerHTML= `$$ m = \\frac{f(${x.toFixed(1)} + ${h.toFixed(2)}) - f(${x.toFixed(1)})}{${h.toFixed(2)}} $$`;
+  
+  // Re-render MathJax
+  if(window.MathJax) {
+    MathJax.typesetPromise([liveFormulaDiv]).catch(function (err) {
+      console.log('MathJax error: ' + err.message);
+    });
+  }
+}
+
+/* ═════════════ CONVERGENCE CHARTS ═════════════ */
+function drawConvergence(){
+  const hs=[1.0, 0.5, 0.25, 0.125, 0.0625, 0.03125];
+  const bx = 1.0;
+  const f = x => x*x;
+  const df = x => 2*x;
+  const exact = df(bx);
+  
+  const rs = getComputedStyle(document.documentElement);
+  const cCanvasBg = rs.getPropertyValue('--canvas-bg').trim() || '#ffffff';
+  const cGridLine = rs.getPropertyValue('--grid-line').trim() || '#f0ede6';
+  const cAxText = rs.getPropertyValue('--ax-text').trim() || '#9a9280';
+  const cRose = rs.getPropertyValue('--rose').trim() || '#8a2a3a';
+  const cBlue = rs.getPropertyValue('--blue').trim() || '#2a4a7a';
+
+  const approxs = hs.map(h => (f(bx+h)-f(bx))/h);
+  const errs = approxs.map(a => Math.abs(a - exact));
+
+  const c1=document.getElementById('convCanvas1');
+  const x1=c1.getContext('2d');
+  const W1=c1.width, H1=c1.height;
+  const p={t:20,r:20,b:40,l:45};
+  x1.clearRect(0,0,W1,H1); x1.fillStyle=cCanvasBg; x1.fillRect(0,0,W1,H1);
+
+  const maxH = Math.max(...hs);
+  const maxE = Math.max(...errs) * 1.1;
+
+  function pt1(hv, ev){
+    const cx=p.l+((maxH - hv)/maxH)*(W1-p.l-p.r);
+    const cy=p.t+(1-ev/maxE)*(H1-p.t-p.b);
+    return [cx,cy];
+  }
+
+  x1.strokeStyle=cGridLine; x1.lineWidth=1;
+  const [zX, zY] = pt1(0,0);
+  x1.beginPath(); x1.moveTo(p.l, zY); x1.lineTo(W1-p.r, zY); x1.stroke();
+  
+  x1.strokeStyle=cRose; x1.lineWidth=2; x1.beginPath();
+  hs.forEach((h,i)=>{
+    const [cx,cy]=pt1(h,errs[i]);
+    i===0?x1.moveTo(cx,cy):x1.lineTo(cx,cy);
+  });
+  x1.stroke();
+  hs.forEach((h,i)=>{
+    const [cx,cy]=pt1(h,errs[i]);
+    x1.fillStyle=cRose; x1.beginPath(); x1.arc(cx,cy,3,0,Math.PI*2); x1.fill();
+  });
+  
+  x1.fillStyle=cAxText; x1.font='10px JetBrains Mono,monospace'; x1.textAlign='center';
+  x1.fillText("h → 0", W1-p.r-20, H1-p.b+15);
+
+  const c2=document.getElementById('convCanvas2');
+  const x2=c2.getContext('2d');
+  const W2=c2.width,H2=c2.height;
+  x2.clearRect(0,0,W2,H2); x2.fillStyle=cCanvasBg; x2.fillRect(0,0,W2,H2);
+
+  const minA = exact - 0.1, maxA = Math.max(...approxs) + 0.1;
+
+  function pt2(hv, av){
+    const cx=p.l+((maxH - hv)/maxH)*(W2-p.l-p.r);
+    const cy=p.t+(1-(av-minA)/(maxA-minA))*(H2-p.t-p.b);
+    return [cx,cy];
+  }
+
+  const [,ey]=pt2(0,exact);
+  x2.strokeStyle=cBlue; x2.lineWidth=1; x2.setLineDash([4,4]);
+  x2.beginPath(); x2.moveTo(p.l, ey); x2.lineTo(W2-p.r, ey); x2.stroke();
+  x2.setLineDash([]);
+  x2.fillStyle=cBlue; x2.textAlign='left'; x2.fillText('Exact', p.l+2, ey-4);
+
+  x2.strokeStyle=cRose; x2.lineWidth=2; x2.beginPath();
+  hs.forEach((h,i)=>{
+    const [cx,cy]=pt2(h,approxs[i]);
+    i===0?x2.moveTo(cx,cy):x2.lineTo(cx,cy);
+  });
+  x2.stroke();
+  hs.forEach((h,i)=>{
+    const [cx,cy]=pt2(h,approxs[i]);
+    x2.fillStyle=cRose; x2.beginPath(); x2.arc(cx,cy,3,0,Math.PI*2); x2.fill();
+  });
+
+  const tbody=document.getElementById('convTableBody');
+  tbody.innerHTML=hs.map((h, i)=>{
+    const e = errs[i];
+    return `<tr>
+      <td>${h.toFixed(5)}</td>
+      <td>${(bx+h).toFixed(5)}</td>
+      <td>${f(bx+h).toFixed(5)}</td>
+      <td>${approxs[i].toFixed(5)}</td>
+      <td>${exact.toFixed(5)}</td>
+      <td class="good">${e.toFixed(5)}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ═════════════ WIRING ═════════════ */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab==='convergence') drawConvergence();
+  });
+});
+
+document.querySelectorAll('[data-fn]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('[data-fn]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    S.fnIdx=+btn.dataset.fn;
+    drawMain();
+  });
+});
+
+document.getElementById('xSlider').addEventListener('input',e=>{
+  S.x=+e.target.value;
+  document.getElementById('xVal').textContent=S.x.toFixed(1);
+  drawMain();
+});
+
+document.getElementById('hSlider').addEventListener('input',e=>{
+  S.h=+e.target.value;
+  document.getElementById('hVal').textContent=S.h.toFixed(2);
+  drawMain();
+});
+
+['showSecant','showTangent','showTriangle'].forEach(id=>{
+  document.getElementById(id).addEventListener('change',e=>{
+    S[id]=e.target.checked;
+    drawMain();
+  });
+});
+
+// Delay initial MathJax formatting to ensure it loads
+window.onload = () => {
+    drawMain();
+};
+</script>
+</body>
+</html>

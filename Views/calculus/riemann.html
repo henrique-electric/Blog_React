@@ -1,0 +1,2008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Riemann Sum — Deep Dive</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Colors */
+  --bg:       #f7f4ee;
+  --bg2:      #efebe2;
+  --bg-card:  #ffffff;
+  --ink:      #1a1810;
+  --ink2:     #3d3a30;
+  --ink3:     #7a7060;
+  --rule:     #d4cec0;
+  --gold:     #b5822a;
+  --gold-lt:  #e8c87a;
+  --teal:     #2a7a6a;
+  --teal-lt:  #7ac8b4;
+  --rose:     #8a2a3a;
+  --rose-lt:  #e87a8a;
+  --blue:     #2a4a7a;
+  --blue-lt:  #7aaae8;
+  --rect-pos: rgba(181,130,42,0.16);
+  --rect-neg: rgba(138,42,58,0.16);
+  --rect-str-pos: rgba(181,130,42,0.75);
+  --rect-str-neg: rgba(138,42,58,0.75);
+  
+  /* Canvas specific vars for JS injection */
+  --canvas-bg:   #ffffff;
+  --grid-line:   #f0ede6;
+  --ax-line:     #b0aa98;
+  --ax-text:     #9a9280;
+  --tick-line:   #d0ccc0;
+  --shade-exact: rgba(42,122,106,0.12);
+  --height-line: rgba(42,74,122,0.35);
+  --int-marker:  rgba(181,130,42,0.4);
+  --blue-shade:  rgba(42,74,122,0.4);
+}
+
+[data-theme="dark"] {
+  --bg:       #161616;
+  --bg2:      #222222;
+  --bg-card:  #1e1e1e;
+  --ink:      #e4e0d8;
+  --ink2:     #b0a898;
+  --ink3:     #888070;
+  --rule:     #3d3a30;
+  --gold:     #d4a350;
+  --gold-lt:  #e8c87a;
+  --teal:     #4db6a1;
+  --teal-lt:  #7ac8b4;
+  --rose:     #cc6677;
+  --rose-lt:  #e87a8a;
+  --blue:     #6b9bed;
+  --blue-lt:  #7aaae8;
+  --rect-pos: rgba(212,163,80,0.2);
+  --rect-neg: rgba(204,102,119,0.2);
+  --rect-str-pos: rgba(212,163,80,0.8);
+  --rect-str-neg: rgba(204,102,119,0.8);
+
+  --canvas-bg:   #1a1a1a;
+  --grid-line:   #2a2a2a;
+  --ax-line:     #555555;
+  --ax-text:     #888888;
+  --tick-line:   #444444;
+  --shade-exact: rgba(77,182,161,0.15);
+  --height-line: rgba(107,155,237,0.35);
+  --int-marker:  rgba(212,163,80,0.4);
+  --blue-shade:  rgba(107,155,237,0.4);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Lora', Georgia, serif;
+  font-size: 15px;
+  line-height: 1.7;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+/* ── HEADER ── */
+.site-header {
+  border-bottom: 2px solid var(--ink);
+  padding: 2.5rem 2rem 2rem;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.site-header .title-block h1 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(2.4rem, 5vw, 4rem);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--ink);
+}
+.site-header .title-block h1 em {
+  font-style: italic;
+  color: var(--gold);
+}
+.site-header .title-block .subtitle {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink3);
+  margin-top: 0.5rem;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.header-formula {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 1.5rem;
+  color: var(--ink2);
+  white-space: nowrap;
+  border-left: 3px solid var(--gold);
+  padding-left: 1rem;
+}
+
+/* ── NAV TABS ── */
+.tab-nav {
+  display: flex;
+  border-bottom: 1px solid var(--rule);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tab-nav::-webkit-scrollbar { display: none; }
+
+.tab-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink3);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0.9rem 1.4rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.tab-btn:hover { color: var(--ink); }
+.tab-btn.active {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+
+/* ── PANELS ── */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── INTERACTIVE ── */
+.interactive-layout {
+  display: grid;
+  grid-template-columns: 1fr 330px;
+  gap: 0;
+  min-height: 600px;
+}
+@media (max-width: 820px) {
+  .interactive-layout { grid-template-columns: 1fr; }
+}
+
+.viz-pane {
+  border-right: 1px solid var(--rule);
+  padding: 1.5rem;
+  position: relative;
+}
+
+.canvas-container {
+  position: relative;
+  background: var(--canvas-bg);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  overflow: hidden;
+}
+canvas { display: block; width: 100%; height: auto; }
+
+/* Annotation overlay */
+.annotation-layer {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+}
+
+.viz-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+.stat-chip {
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  padding: 0.7rem 0.8rem;
+  border-radius: 2px;
+}
+.stat-chip .lbl {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink3);
+}
+.stat-chip .val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.5rem;
+  font-style: italic;
+  color: var(--gold);
+  line-height: 1.2;
+  margin-top: 0.1rem;
+}
+.stat-chip.exact .val { color: var(--teal); }
+.stat-chip.err   .val { color: var(--rose); font-size: 1.2rem; }
+
+.ctrl-pane {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+  overflow-y: auto;
+}
+
+.ctrl-section { }
+.ctrl-head {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink3);
+  margin-bottom: 0.8rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* Annotation toggle */
+.anno-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+}
+.anno-toggle input[type=checkbox] {
+  width: 14px; height: 14px;
+  accent-color: var(--gold);
+  cursor: pointer;
+}
+.anno-toggle span {
+  font-size: 0.78rem;
+  color: var(--ink2);
+}
+
+/* Btn groups */
+.btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.grp-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  padding: 0.4rem 0.7rem;
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  color: var(--ink3);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.grp-btn:hover { border-color: var(--ink2); color: var(--ink2); }
+.grp-btn.active {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #fff;
+}
+.grp-btn.fn-btn {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 0.95rem;
+}
+.grp-btn.fn-btn.active {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #fff;
+}
+
+/* Sliders */
+.slider-block { margin-bottom: 0.9rem; }
+.slider-block:last-child { margin-bottom: 0; }
+.slider-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--ink2);
+  margin-bottom: 0.4rem;
+}
+.slider-label .sval {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--gold);
+}
+input[type=range] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 2px;
+  background: var(--rule);
+  border-radius: 1px;
+  outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  background: var(--gold);
+  cursor: pointer;
+  border: 2px solid var(--bg);
+  box-shadow: 0 0 0 1px var(--gold);
+}
+
+/* Inline formula box */
+.inline-formula {
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--gold);
+  padding: 0.8rem 1rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: var(--ink2);
+  border-radius: 0 2px 2px 0;
+}
+.inline-formula sub, .inline-formula sup {
+  font-size: 0.65em;
+  font-style: normal;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── THEORY PANEL ── */
+.theory-body {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 3rem 2rem 4rem;
+}
+
+.theory-body h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2rem;
+  font-weight: 400;
+  color: var(--ink);
+  margin: 2.5rem 0 1rem;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 0.5rem;
+}
+.theory-body h2:first-child { margin-top: 0; }
+
+.theory-body h3 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.3rem;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--gold);
+  margin: 1.8rem 0 0.6rem;
+}
+
+.theory-body p {
+  color: var(--ink2);
+  margin-bottom: 1rem;
+}
+
+.theory-body .definition {
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--gold);
+  padding: 1.2rem 1.5rem;
+  margin: 1.5rem 0;
+  border-radius: 0 3px 3px 0;
+}
+.theory-body .definition .def-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--gold);
+  margin-bottom: 0.6rem;
+}
+.theory-body .definition p { margin: 0; color: var(--ink2); }
+
+.theory-body .math-display {
+  text-align: center;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 1.5rem;
+  padding: 1.4rem 1rem;
+  background: var(--bg2);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  margin: 1.5rem 0;
+  color: var(--ink);
+  line-height: 2;
+}
+.theory-body .math-display sub, .theory-body .math-display sup {
+  font-size: 0.6em;
+  font-style: normal;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.theory-body .note-box {
+  background: var(--bg2);
+  border: 1px solid var(--rule);
+  padding: 1rem 1.2rem;
+  border-radius: 3px;
+  margin: 1.2rem 0;
+  font-size: 0.88rem;
+  color: var(--ink3);
+}
+.theory-body .note-box strong { color: var(--ink2); }
+
+.theory-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  font-size: 0.88rem;
+}
+.theory-body th {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink3);
+  padding: 0.6rem 1rem;
+  border-bottom: 2px solid var(--rule);
+  text-align: left;
+}
+.theory-body td {
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink2);
+  vertical-align: top;
+}
+.theory-body td:first-child { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1.1rem; }
+.theory-body tr:last-child td { border-bottom: none; }
+
+/* ── STEP-BY-STEP ── */
+.steps-body {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 2.5rem 2rem 4rem;
+}
+
+.step-card {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 1.2rem;
+  margin-bottom: 2.5rem;
+  position: relative;
+}
+.step-card::before {
+  content: '';
+  position: absolute;
+  left: 27px;
+  top: 56px;
+  bottom: -2.5rem;
+  width: 1px;
+  background: var(--rule);
+}
+.step-card:last-child::before { display: none; }
+
+.step-num {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.4rem;
+  font-style: italic;
+  flex-shrink: 0;
+}
+
+.step-content h3 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.35rem;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 0.5rem;
+  margin-top: 0.9rem;
+}
+.step-content p { color: var(--ink2); margin-bottom: 0.8rem; font-size: 0.93rem; }
+.step-content .math-inline {
+  background: var(--bg2);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--gold);
+  padding: 0.7rem 1rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 1.1rem;
+  border-radius: 0 2px 2px 0;
+  margin: 0.8rem 0;
+  color: var(--ink2);
+}
+.step-content .math-inline sub, .step-content .math-inline sup {
+  font-size: 0.65em;
+  font-style: normal;
+  font-family: 'JetBrains Mono', monospace;
+}
+.step-content .highlight {
+  background: rgba(181,130,42,0.1);
+  border: 1px solid rgba(181,130,42,0.3);
+  padding: 0.7rem 1rem;
+  border-radius: 3px;
+  margin: 0.8rem 0;
+  font-size: 0.88rem;
+  color: var(--ink2);
+}
+.step-content .highlight strong { color: var(--gold); }
+
+/* ── CONVERGENCE ── */
+.conv-body {
+  padding: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.conv-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+@media (max-width: 640px) { .conv-grid { grid-template-columns: 1fr; } }
+
+.conv-card {
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.conv-card-head {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--rule);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink3);
+  background: var(--bg2);
+}
+.conv-card canvas { display: block; width: 100%; height: auto; }
+
+.conv-table-wrap {
+  margin-top: 1.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.conv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+.conv-table th {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink3);
+  padding: 0.6rem 1rem;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+}
+.conv-table td {
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink2);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+}
+.conv-table tr:last-child td { border-bottom: none; }
+.conv-table td.good { color: var(--teal); }
+.conv-table td.bad  { color: var(--rose); }
+
+/* ── GLOSSARY ── */
+.gloss-body {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 2.5rem 2rem 4rem;
+}
+.gloss-item {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 1rem;
+  padding: 1.2rem 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: start;
+}
+.gloss-item:last-child { border-bottom: none; }
+.gloss-term {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 1.2rem;
+  color: var(--gold);
+  padding-top: 0.15rem;
+}
+.gloss-def {
+  color: var(--ink2);
+  font-size: 0.9rem;
+}
+.gloss-def .symbol {
+  display: inline-block;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 1rem;
+  color: var(--ink);
+  background: var(--bg2);
+  padding: 0 0.3rem;
+  border-radius: 2px;
+  margin: 0 1px;
+}
+
+@media (max-width: 520px) {
+  .gloss-item { grid-template-columns: 1fr; gap: 0.3rem; }
+}
+
+/* ── INTUITION TAB ── */
+.intuition-body {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 3rem 2rem 5rem;
+}
+
+.intuition-body h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2rem;
+  font-weight: 400;
+  color: var(--ink);
+  margin: 3rem 0 1rem;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 0.5rem;
+}
+.intuition-body h2:first-child { margin-top: 0; }
+
+.intuition-body h3 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.3rem;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--gold);
+  margin: 2rem 0 0.7rem;
+}
+
+.intuition-body p {
+  color: var(--ink2);
+  margin-bottom: 1rem;
+  line-height: 1.85;
+}
+
+.intuition-body .insight-box {
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--teal);
+  padding: 1.2rem 1.5rem;
+  margin: 1.8rem 0;
+  border-radius: 0 3px 3px 0;
+}
+.intuition-body .insight-box .ins-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--teal);
+  margin-bottom: 0.6rem;
+}
+.intuition-body .insight-box p { margin: 0; color: var(--ink2); }
+
+.intuition-body .warning-box {
+  background: rgba(138,42,58,0.05);
+  border: 1px solid rgba(138,42,58,0.25);
+  border-left: 4px solid var(--rose);
+  padding: 1.2rem 1.5rem;
+  margin: 1.8rem 0;
+  border-radius: 0 3px 3px 0;
+}
+.intuition-body .warning-box .warn-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--rose);
+  margin-bottom: 0.6rem;
+}
+.intuition-body .warning-box p { margin: 0; color: var(--ink2); }
+
+.intuition-body .math-display {
+  text-align: center;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 1.45rem;
+  padding: 1.4rem 1rem;
+  background: var(--bg2);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  margin: 1.5rem 0;
+  color: var(--ink);
+  line-height: 2;
+}
+.intuition-body .math-display sub, .intuition-body .math-display sup {
+  font-size: 0.6em;
+  font-style: normal;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.intuition-body .note-box {
+  background: var(--bg2);
+  border: 1px solid var(--rule);
+  padding: 1rem 1.2rem;
+  border-radius: 3px;
+  margin: 1.2rem 0;
+  font-size: 0.88rem;
+  color: var(--ink3);
+}
+.intuition-body .note-box strong { color: var(--ink2); }
+
+.analogy-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+@media (max-width: 600px) { .analogy-grid { grid-template-columns: 1fr; } }
+
+.analogy-card {
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  padding: 1.2rem;
+  border-radius: 3px;
+}
+.analogy-card .ac-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink3);
+  margin-bottom: 0.5rem;
+}
+.analogy-card .ac-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 1.1rem;
+  color: var(--gold);
+  margin-bottom: 0.5rem;
+}
+.analogy-card p {
+  font-size: 0.86rem;
+  color: var(--ink2);
+  margin: 0;
+  line-height: 1.65;
+}
+
+/* Extra theory boxes */
+.theory-body .insight-box {
+  background: rgba(42,122,106,0.05);
+  border: 1px solid rgba(42,122,106,0.3);
+  border-left: 4px solid var(--teal);
+  padding: 1.2rem 1.5rem;
+  margin: 1.5rem 0;
+  border-radius: 0 3px 3px 0;
+}
+.theory-body .insight-box .ins-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--teal);
+  margin-bottom: 0.5rem;
+}
+.theory-body .insight-box p { margin: 0; color: var(--ink2); }
+
+.theory-body .warning-box {
+  background: rgba(138,42,58,0.05);
+  border: 1px solid rgba(138,42,58,0.2);
+  border-left: 4px solid var(--rose);
+  padding: 1.1rem 1.4rem;
+  margin: 1.4rem 0;
+  border-radius: 0 3px 3px 0;
+}
+.theory-body .warning-box .warn-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--rose);
+  margin-bottom: 0.5rem;
+}
+.theory-body .warning-box p { margin: 0; color: var(--ink2); font-size: 0.9rem; }
+
+.step-content .deep-note {
+  background: rgba(42,74,122,0.06);
+  border: 1px solid rgba(42,74,122,0.2);
+  border-left: 3px solid var(--blue);
+  padding: 0.8rem 1rem;
+  border-radius: 0 2px 2px 0;
+  margin: 0.8rem 0;
+  font-size: 0.85rem;
+  color: var(--ink2);
+}
+.step-content .deep-note strong { color: var(--blue); }
+
+.conv-deep-box {
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  padding: 1.4rem 1.6rem;
+  border-radius: 3px;
+  margin-top: 1.5rem;
+}
+.conv-deep-box h3 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.2rem;
+  font-style: italic;
+  color: var(--gold);
+  margin-bottom: 0.8rem;
+}
+.conv-deep-box p { font-size: 0.88rem; color: var(--ink2); margin-bottom: 0.8rem; }
+.conv-deep-box p:last-child { margin-bottom: 0; }
+
+.gloss-def .deep-expand {
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.83rem;
+  color: var(--ink3);
+  font-style: italic;
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="title-block">
+    <h1>The <em>Riemann</em> Sum</h1>
+    <div class="subtitle">A complete, interactive exploration from first principles</div>
+  </div>
+  <div class="header-right">
+    <div class="header-formula">
+      ∫<sub>a</sub><sup>b</sup> f(x) dx = lim<sub>n→∞</sub> Σ f(x<sub>i</sub>*) · Δx
+    </div>
+    <button id="themeToggle" class="grp-btn">🌓 Theme</button>
+  </div>
+</header>
+
+<nav class="tab-nav">
+  <button class="tab-btn active" data-tab="interactive">① Interactive</button>
+  <button class="tab-btn" data-tab="theory">② Theory</button>
+  <button class="tab-btn" data-tab="intuition">③ Deep Intuition</button>
+  <button class="tab-btn" data-tab="steps">④ Step-by-Step</button>
+  <button class="tab-btn" data-tab="convergence">⑤ Convergence</button>
+  <button class="tab-btn" data-tab="glossary">⑥ Glossary</button>
+</nav>
+
+<div class="tab-panel active" id="tab-interactive">
+  <div class="interactive-layout">
+    <div class="viz-pane">
+      <div class="canvas-container">
+        <canvas id="mainCanvas" width="680" height="460"></canvas>
+      </div>
+      <div class="viz-stats">
+        <div class="stat-chip">
+          <div class="lbl">Riemann Sum S<sub>n</sub></div>
+          <div class="val" id="sumVal">—</div>
+        </div>
+        <div class="stat-chip exact">
+          <div class="lbl">Exact Integral</div>
+          <div class="val" id="exactVal">—</div>
+        </div>
+        <div class="stat-chip err">
+          <div class="lbl">|Error|</div>
+          <div class="val" id="errVal">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ctrl-pane">
+
+      <div class="ctrl-section">
+        <div class="ctrl-head">Function f(x)</div>
+        <div class="btn-group">
+          <button class="grp-btn fn-btn active" data-fn="0">x²</button>
+          <button class="grp-btn fn-btn" data-fn="1">sin x</button>
+          <button class="grp-btn fn-btn" data-fn="2">√x</button>
+          <button class="grp-btn fn-btn" data-fn="3">eˣ/4</button>
+          <button class="grp-btn fn-btn" data-fn="4">x³−2x</button>
+          <button class="grp-btn fn-btn" data-fn="5">1/x</button>
+        </div>
+      </div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-head">Sample Point Rule</div>
+        <div class="btn-group">
+          <button class="grp-btn active" data-m="left">Left</button>
+          <button class="grp-btn" data-m="mid">Midpoint</button>
+          <button class="grp-btn" data-m="right">Right</button>
+          <button class="grp-btn" data-m="upper">Upper</button>
+          <button class="grp-btn" data-m="lower">Lower</button>
+        </div>
+        <div style="margin-top:0.8rem; font-size:0.78rem; color:var(--ink3); font-style:italic;" id="methodDesc">
+          Uses left endpoints xᵢ = a + iΔx as the sample point in each subinterval.
+        </div>
+      </div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-head">Subdivisions</div>
+        <div class="slider-block">
+          <div class="slider-label">
+            <span>n (number of rectangles)</span>
+            <span class="sval" id="nVal">8</span>
+          </div>
+          <input type="range" id="nSlider" min="1" max="80" value="8">
+        </div>
+      </div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-head">Interval [a, b]</div>
+        <div class="slider-block">
+          <div class="slider-label">
+            <span>a (left endpoint)</span>
+            <span class="sval" id="aVal">0</span>
+          </div>
+          <input type="range" id="aSlider" min="-4" max="4" step="0.25" value="0">
+        </div>
+        <div class="slider-block">
+          <div class="slider-label">
+            <span>b (right endpoint)</span>
+            <span class="sval" id="bVal">3</span>
+          </div>
+          <input type="range" id="bSlider" min="-4" max="4" step="0.25" value="3">
+        </div>
+      </div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-head">Annotations</div>
+        <label class="anno-toggle" style="margin-bottom:0.5rem">
+          <input type="checkbox" id="showDelta" checked>
+          <span>Show Δx width</span>
+        </label>
+        <label class="anno-toggle" style="margin-bottom:0.5rem">
+          <input type="checkbox" id="showDots" checked>
+          <span>Show sample points xᵢ*</span>
+        </label>
+        <label class="anno-toggle" style="margin-bottom:0.5rem">
+          <input type="checkbox" id="showHeight" checked>
+          <span>Show f(xᵢ*) height</span>
+        </label>
+        <label class="anno-toggle">
+          <input type="checkbox" id="showShade">
+          <span>Shade exact area</span>
+        </label>
+      </div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-head">Live Formula</div>
+        <div class="inline-formula" id="liveFormula">
+          S<sub>n</sub> = Σ<sub>i=0</sub><sup>n−1</sup> f(x<sub>i</sub>) · Δx
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-intuition">
+  <div class="intuition-body">
+
+    <h2>The Core Problem: Curved Boundaries</h2>
+
+    <p>Geometry has always known how to measure rectangles, triangles, and polygons. A rectangle with base <em>b</em> and height <em>h</em> has area <em>bh</em> — this requires no calculus, no limits, no special machinery. The ancient Greeks could compute the area of any polygon by cutting it into triangles.</p>
+
+    <p>But what about the region beneath a curve? A parabola has a <em>curved</em> boundary. No finite collection of straight-edged shapes fits it exactly. This is not a computational inconvenience — it is a structural problem. The area is perfectly well-defined (the region is clearly bounded), but our geometric vocabulary does not contain the tools to name it directly.</p>
+
+    <p>The Riemann sum is the answer to this structural problem. Its strategy is profound in its simplicity: <strong>replace the curved boundary with a staircase of flat edges</strong>, measure the staircase exactly (since each step is a rectangle), then take the staircase to infinity — making the steps infinitely thin until the approximation <em>becomes</em> exact.</p>
+
+    <div class="insight-box">
+      <div class="ins-title">The Core Strategy</div>
+      <p>We are not <em>computing</em> the area by some formula — we are <em>defining</em> what it means for a curved region to have an area. The Riemann sum is simultaneously the approximation method and the foundational definition.</p>
+    </div>
+
+    <h2>Why Rectangles? The Case for Simplicity</h2>
+
+    <p>One might ask: why rectangles specifically? Why not trapezoids, or curved arches, or something that better follows the function's shape? The answer has two parts.</p>
+
+    <p>First, rectangles are the simplest shape whose area is beyond doubt. No calculus is needed to verify that a rectangle of width Δx and height f(x*) has area f(x*) · Δx. This is intentional: we are trying to define area for complicated shapes <em>using</em> the unambiguous area of simple shapes. If we used trapezoids, we would need their area formula — which itself requires some geometric argument. Rectangles are epistemically clean.</p>
+
+    <p>Second, and more importantly: <strong>it doesn't matter in the limit</strong>. As the partition gets finer (Δx → 0), the difference between any two reasonable methods of approximating each strip vanishes. The rectangle approximation, the trapezoid approximation, and even a curved arch approximation all converge to the same value — the true integral. So we choose the simplest.</p>
+
+    <div class="note-box">
+      <strong>Historical note:</strong> Archimedes used the "method of exhaustion" — bounding a region between inscribed and circumscribed polygons — long before Riemann. His calculation of the area of a parabolic segment (around 250 BCE) used exactly this squeezing argument, making him arguably the first to perform what we now call integration.
+    </div>
+
+    <h2>The Squeeze Theorem Argument: Why the Limit Exists</h2>
+
+    <p>Here is the deepest structural insight: how do we know the limit of Riemann sums actually <em>converges</em>? The limit might not exist — different sequences of partitions might give different values. For arbitrary functions, this does happen. But for nice functions (continuous, or monotone), it doesn't. Here is why.</p>
+
+    <p>Define the <strong>upper sum</strong> U(f, P) as the sum where each rectangle's height is the <em>maximum</em> of f on that subinterval. Define the <strong>lower sum</strong> L(f, P) as the sum using the <em>minimum</em>. Then for any choice of sample points x<sub>i</sub>*:</p>
+
+    <div class="math-display">
+      L(f, P) ≤ S(f, P) ≤ U(f, P)
+    </div>
+
+    <p>This is a sandwich. The Riemann sum is always trapped between the lower and upper Darboux sums. Now: what happens as the partition is refined? The lower sums increase (more rectangles means better coverage from below), and the upper sums decrease (better coverage from above). If — and this is Riemann's criterion — the gap U − L can be made arbitrarily small by choosing a fine enough partition, then the Riemann sum has no choice but to converge. The squeeze forces it.</p>
+
+    <div class="insight-box">
+      <div class="ins-title">Riemann's Criterion for Integrability</div>
+      <p>A bounded function f is Riemann-integrable on [a, b] if and only if for every ε > 0, there exists a partition P such that U(f, P) − L(f, P) &lt; ε. This is equivalent to requiring that f has "measure zero" discontinuities — a condition satisfied by all continuous functions and all monotone functions.</p>
+    </div>
+
+    <h3>When does the squeeze fail?</h3>
+
+    <p>The squeeze fails when U − L cannot be forced below some threshold, no matter how fine the partition. The classic example is the <strong>Dirichlet function</strong>: f(x) = 1 if x is rational, f(x) = 0 if x is irrational. On any subinterval, no matter how tiny, there are both rationals and irrationals. So the maximum is always 1 and the minimum is always 0. Every upper sum equals (b − a) · 1, every lower sum equals (b − a) · 0 — the gap never closes. This function is not Riemann-integrable.</p>
+
+    <div class="warning-box">
+      <div class="warn-title">Not All Functions Are Integrable</div>
+      <p>Riemann integrability is not automatic. It requires that the function's discontinuities be "negligible" — technically, a set of measure zero. A function that is discontinuous everywhere (like Dirichlet's) cannot be integrated in Riemann's sense. The Lebesgue integral, developed in the early 1900s, handles such functions by redefining what "area" means at a deeper level.</p>
+    </div>
+
+    <h2>What Δx Really Means: A Philosophical Aside</h2>
+
+    <p>The symbol Δx (pronounced "delta x") is the width of one subinterval. In the Riemann sum, it is a <em>finite</em> positive number — say, 0.75 or 0.001. There is nothing infinitely small about it; it is just a small real number.</p>
+
+    <p>But when we write the definite integral as ∫ f(x) <em>dx</em>, the <em>dx</em> is the symbol that Δx "becomes in the limit." This is a notational convention with deep historical roots. Leibniz, who invented this notation in the 17th century, genuinely thought of <em>dx</em> as an infinitesimally thin rectangle — a number smaller than any positive real number yet greater than zero. This concept was philosophically controversial for 200 years.</p>
+
+    <p>Riemann's contribution (1854) was to make the definition rigorous <em>without</em> needing infinitesimals. His approach uses ordinary limits: Δx is always a real number, and we ask what happens as that real number approaches — but never reaches — zero. The notation ∫ f(x) <em>dx</em> preserves Leibniz's intuition while resting on Riemann's rigorous foundation.</p>
+
+    <div class="analogy-grid">
+      <div class="analogy-card">
+        <div class="ac-label">Intuition</div>
+        <div class="ac-title">The staircase that becomes a slope</div>
+        <p>Imagine descending a staircase with 4 steps versus 1000 steps versus infinitely many. At infinite steps, the staircase <em>is</em> the ramp — the distinction collapses. Riemann sums work the same way: at the limit, the approximation <em>is</em> the area.</p>
+      </div>
+      <div class="analogy-card">
+        <div class="ac-label">Analogy</div>
+        <div class="ac-title">Pixels and images</div>
+        <p>A digital image is a grid of rectangular pixels. At low resolution, you see blocky rectangles. At high enough resolution, your eye perceives a smooth curve. The "true" image is the limit as pixel size → 0. The Riemann sum is exactly the pixel approximation.</p>
+      </div>
+      <div class="analogy-card">
+        <div class="ac-label">Physics</div>
+        <div class="ac-title">Accumulating a continuous quantity</div>
+        <p>If your speed varies continuously as v(t), your total distance is ∫ v(t) dt. You approximate it by assuming constant speed over each small time interval Δt — exactly a Riemann sum. GPS systems compute something precisely analogous thousands of times per second.</p>
+      </div>
+      <div class="analogy-card">
+        <div class="ac-label">Probability</div>
+        <div class="ac-title">Expected value as an integral</div>
+        <p>The expected value of a continuous random variable X with density f is E[X] = ∫ x f(x) dx. This integral is a Riemann sum in disguise: weight each possible value x by its probability density f(x) and sum over all outcomes.</p>
+      </div>
+    </div>
+
+    <h2>The Accumulation Perspective</h2>
+
+    <p>There is a second way to understand the Riemann sum — not as approximating <em>area</em>, but as <em>accumulating a rate</em>. This perspective is arguably more powerful, and it is the one that connects most naturally to physics and the Fundamental Theorem of Calculus.</p>
+
+    <p>Suppose f(x) represents a <em>rate of change</em> at position x — say, the density of a bar of metal at position x along its length, or the instantaneous velocity of a moving object at time x. The Riemann sum S<sub>n</sub> = Σ f(x<sub>i</sub>*) · Δx then reads as: <em>approximate the total accumulated quantity by assuming the rate is constant (equal to f(x<sub>i</sub>*)) over each small interval of length Δx</em>.</p>
+
+    <p>In each subinterval, you are saying: "for this Δx-wide chunk, the rate held steady at f(x<sub>i</sub>*), so the amount accumulated is f(x<sub>i</sub>*) · Δx." Sum these chunks and you get the total accumulation. As Δx → 0, the approximation of "constant rate on each chunk" becomes arbitrarily precise.</p>
+
+    <div class="insight-box">
+      <div class="ins-title">Area vs. Accumulation — Two Faces of the Same Idea</div>
+      <p>Every Riemann integral is both an area (under the graph of f) and an accumulation (of the quantity whose rate is f). The area interpretation is geometric; the accumulation interpretation is physical. The Fundamental Theorem of Calculus bridges the two: if F′(x) = f(x), then the total accumulated change in F from a to b equals the integral of its rate f.</p>
+    </div>
+
+    <h2>Why the Midpoint Rule Is Better: A Geometric Explanation</h2>
+
+    <p>For smooth functions, the midpoint rule achieves <em>second-order</em> accuracy (error ∼ 1/n²), while left and right rules achieve only first-order (error ∼ 1/n). This has a beautiful geometric explanation.</p>
+
+    <p>Consider a single subinterval [x₀, x₁] of width Δx. For the left rule, the rectangle has height f(x₀). For a concave-up curve, this underestimates because the curve rises above f(x₀) across the whole interval. The error on that single rectangle is roughly f′(x₀) · Δx/2 · Δx ∼ O(Δx²).</p>
+
+    <p>The midpoint rule, however, enjoys a special cancellation. The rectangle of height f(x̄) (where x̄ is the midpoint) overestimates on the left half of the subinterval and underestimates on the right half — the errors have opposite sign and largely cancel. More precisely, the midpoint rectangle has the same area as the <strong>tangent trapezoid</strong> at x̄, and the error between a tangent line and the curve is governed by the second derivative: it is O(Δx³) per subinterval rather than O(Δx²). Summing over n ∼ 1/Δx subintervals gives total error O(Δx²) = O(1/n²). That is the source of the quadratic convergence.</p>
+
+    <div class="note-box">
+      <strong>Simpson's Rule</strong> takes this further: it fits a parabola (rather than a line) through three points on each subinterval. The error per subinterval becomes O(Δx⁵), giving total error O(Δx⁴) = O(1/n⁴). Each doubling of n reduces the error by a factor of 16. This is why Simpson's Rule is the workhorse of numerical integration in practice.
+    </div>
+
+    <h2>The Limit in Slow-Motion: Why the Error Vanishes</h2>
+
+    <p>When learning integration, it is tempting to memorize that "as n → ∞, the error goes to zero." But let's look at this in slow-motion to understand the geometric reality of <em>why</em> the error vanishes faster than the rectangles themselves shrink.</p>
+
+    <p>Imagine a single subinterval of width Δx. The true area under a smooth curve here is roughly a trapezoid. If we use a left Riemann sum, we are missing a small triangular wedge of area at the top. The base of this missing wedge is Δx. Its height is the difference in the function's value across the interval, which is roughly f′(x) · Δx.</p>
+
+    <p>Therefore, the error in <em>one single rectangle</em> is the area of that triangle: 1/2 · base · height ≈ 1/2 (Δx)(f′(x) Δx) = C · Δx².</p>
+
+    <div class="insight-box">
+      <div class="ins-title">The Geometry of Convergence</div>
+      <p>Notice the power of Δx². If you cut the width of the rectangles in half, the error for a single rectangle doesn't just halve—it drops by a factor of <strong>four</strong>. Because you now have twice as many rectangles, the <em>total</em> error over the whole interval drops by a factor of two. The error is being crushed geometrically because the "missing wedges" are shrinking in both width and height simultaneously.</p>
+    </div>
+
+    <h2>Stretching Space: A Bridge to Higher Dimensions</h2>
+
+    <p>In 1D calculus, Δx is a rigid, uniform width. But the true power of the Riemann sum reveals itself when we move into multivariable spaces, where we calculate volumes using double integrals: ∬ f(x,y) dA.</p>
+
+    <p>Here, the 1D line segment Δx becomes a 2D patch of area ΔA. But what if we change our coordinate system—say, moving from a rigid Cartesian grid (x, y) to a circular Polar grid (r, θ)? The "rectangles" of our partition are no longer uniform squares; they warp and stretch depending on how far they are from the origin.</p>
+
+    <p>The 1D Riemann sum prepares us for this. The Δx is essentially a scaling factor for the geometry of the input space. When space warps in higher dimensions, that scaling factor is replaced by the <strong>Jacobian determinant</strong>—a multiplier that tracks exactly how much a tiny localized "rectangle" of space stretches or squishes during a transformation. The logic remains identical: assume the rate f is constant over a tiny patch, multiply by the size of that patch, and accumulate.</p>
+
+    <h2>The Bridge to the Fundamental Theorem</h2>
+
+    <p>The Fundamental Theorem of Calculus (FTC) says: if F is any antiderivative of f (meaning F′(x) = f(x)), then</p>
+
+    <div class="math-display">
+      ∫<sub>a</sub><sup>b</sup> f(x) dx = F(b) − F(a)
+    </div>
+
+    <p>This is a genuinely striking result. The integral — defined as a limit of sums on the left — turns out to equal a simple subtraction on the right. Why?</p>
+
+    <p>The argument is essentially a telescoping sum. Define A(x) as the "area accumulation function" — the area under f from a to x. By the definition of the integral as a Riemann sum, A(a) = 0 and A(b) = ∫<sub>a</sub><sup>b</sup> f. Now, the key observation: A′(x) = f(x). This is the content of FTC Part 1 — the rate of change of accumulated area at position x is exactly f(x). Therefore A is an antiderivative of f, so A(x) = F(x) + C for any antiderivative F. Plugging in: A(b) − A(a) = F(b) − F(a). Done.</p>
+
+    <p>The Riemann sum is the scaffolding that makes this argument possible. Without the precise definition of the integral as a limit, the FTC would be a plausible heuristic, not a theorem. Riemann's definition transforms it into something provable.</p>
+
+    <div class="insight-box">
+      <div class="ins-title">The Deepest Structural Point</div>
+      <p>Integration and differentiation are inverse operations — not by coincidence, but because of how integration is defined. The Riemann sum encodes the idea of accumulation; differentiation measures rates of change; and the FTC says these two operations undo each other. Every time you use ∫<sub>a</sub><sup>b</sup> f dx = F(b) − F(a), you are implicitly standing on Riemann's foundational definition.</p>
+    </div>
+
+    <h2>Non-Uniform Partitions and the Mesh</h2>
+
+    <p>Everything above assumed a <strong>uniform partition</strong> — all n subintervals have the same width Δx = (b−a)/n. This is the natural choice for computation, but the theory works far more generally.</p>
+
+    <p>A general partition P = {x₀, x₁, …, x<sub>n</sub>} can have subintervals of different widths Δx<sub>i</sub> = x<sub>i</sub> − x<sub>i−1</sub>. The Riemann sum becomes Σ f(x<sub>i</sub>*) · Δx<sub>i</sub>. This generality is important: when a function varies rapidly in one region and slowly in another, a non-uniform partition can concentrate refinement where it is needed, achieving high accuracy with fewer rectangles.</p>
+
+    <p>For convergence, what matters is not n → ∞ per se, but that the <strong>mesh</strong> ‖P‖ = max Δx<sub>i</sub> → 0. (For uniform partitions, these are equivalent, since ‖P‖ = Δx = (b−a)/n.) A Riemann sum over non-uniform partitions converges to the integral as ‖P‖ → 0, for any choice of sample points x<sub>i</sub>*, as long as f is Riemann-integrable.</p>
+
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-theory">
+  <div class="theory-body">
+
+    <h2>What is a Riemann Sum?</h2>
+
+    <p>A <strong>Riemann sum</strong> is a method for approximating the total area under a curve by dividing it into a finite number of vertical strips — each approximated as a rectangle. The central idea is elegantly simple: if we cannot compute an area exactly, we can estimate it by stacking rectangles, then make the estimate arbitrarily precise by using more and narrower rectangles.</p>
+
+    <p>The concept is named after the German mathematician <strong>Bernhard Riemann</strong> (1826–1866), who formalized it as the foundation of integral calculus. The Riemann sum is not merely a computational trick — it is the definition of the definite integral itself.</p>
+
+    <div class="definition">
+      <div class="def-title">Formal Definition</div>
+      <p>Let <em>f</em> be a bounded function on [<em>a</em>, <em>b</em>]. A <strong>partition</strong> <em>P</em> = {<em>x</em><sub>0</sub>, <em>x</em><sub>1</sub>, …, <em>x</em><sub>n</sub>} divides [<em>a</em>, <em>b</em>] into <em>n</em> subintervals. Choosing a sample point <em>x</em><sub>i</sub>* ∈ [<em>x</em><sub>i−1</sub>, <em>x</em><sub>i</sub>] in each subinterval, the <strong>Riemann sum</strong> is:</p>
+    </div>
+
+    <div class="math-display">
+      S<sub>n</sub> = Σ<sub>i=1</sub><sup>n</sup> f(x<sub>i</sub>*) · Δx<sub>i</sub>
+    </div>
+
+    <p>where Δx<sub>i</sub> = x<sub>i</sub> − x<sub>i−1</sub> is the width of the <em>i</em>-th subinterval. For a <strong>uniform partition</strong> (equal widths), Δx = (b − a) / n for all i.</p>
+
+    <h2>The Three Standard Rules</h2>
+
+    <p>The choice of sample point x<sub>i</sub>* within each subinterval defines which <em>rule</em> is used:</p>
+
+    <table>
+      <thead><tr><th>Rule</th><th>Sample Point</th><th>Formula</th><th>Behavior</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Left Riemann</td>
+          <td>Left endpoint: x<sub>i−1</sub></td>
+          <td>S = Σ f(x<sub>i−1</sub>) · Δx</td>
+          <td>Overestimates increasing f; underestimates decreasing f</td>
+        </tr>
+        <tr>
+          <td>Right Riemann</td>
+          <td>Right endpoint: x<sub>i</sub></td>
+          <td>S = Σ f(x<sub>i</sub>) · Δx</td>
+          <td>Underestimates increasing f; overestimates decreasing f</td>
+        </tr>
+        <tr>
+          <td>Midpoint Rule</td>
+          <td>Midpoint: (x<sub>i−1</sub> + x<sub>i</sub>)/2</td>
+          <td>S = Σ f(x̄<sub>i</sub>) · Δx</td>
+          <td>Often most accurate; error is O(Δx²)</td>
+        </tr>
+        <tr>
+          <td>Upper Sum</td>
+          <td>Maximum of f on [x<sub>i−1</sub>, x<sub>i</sub>]</td>
+          <td>U = Σ sup f · Δx</td>
+          <td>Always an overestimate (or equal)</td>
+        </tr>
+        <tr>
+          <td>Lower Sum</td>
+          <td>Minimum of f on [x<sub>i−1</sub>, x<sub>i</sub>]</td>
+          <td>L = Σ inf f · Δx</td>
+          <td>Always an underestimate (or equal)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Connection to the Definite Integral</h2>
+
+    <p>The Riemann sum's deepest significance is that the definite integral is defined as its limit. As n → ∞ (and thus Δx → 0), the Riemann sum approaches the exact area — provided <em>f</em> is Riemann-integrable on [a, b].</p>
+
+    <div class="math-display">
+      ∫<sub>a</sub><sup>b</sup> f(x) dx = lim<sub>n→∞</sub> Σ<sub>i=1</sub><sup>n</sup> f(x<sub>i</sub>*) · Δx
+    </div>
+
+    <p>This limit exists and equals the same value regardless of which sample points x<sub>i</sub>* are chosen — as long as f is bounded and continuous almost everywhere (Riemann's criterion).</p>
+
+    <div class="note-box">
+      <strong>Key insight:</strong> The integral is not computed by anti-differentiation in this framework — it is <em>defined</em> as this limit. The Fundamental Theorem of Calculus then provides a computational shortcut via antiderivatives.
+    </div>
+
+    <h2>Why Negative Areas?</h2>
+
+    <p>When f(x) < 0, the "height" f(x<sub>i</sub>*) is negative, so the rectangle contributes a <em>negative</em> value to the sum. This is intentional: the definite integral counts area below the x-axis as negative. The total is thus the <strong>signed area</strong> — positive regions minus negative ones.</p>
+
+    <h3>Upper and Lower Darboux Sums</h3>
+
+    <p>A related (and equivalent) approach uses Darboux sums: the <strong>upper sum</strong> U(f, P) uses the supremum of f on each subinterval, and the <strong>lower sum</strong> L(f, P) uses the infimum. A function is Riemann-integrable if and only if:</p>
+
+    <div class="math-display">
+      lim<sub>‖P‖→0</sub> [ U(f, P) − L(f, P) ] = 0
+    </div>
+
+    <p>where ‖P‖ denotes the mesh (width of the widest subinterval).</p>
+
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-steps">
+  <div class="steps-body">
+
+    <div style="margin-bottom:2rem;">
+      <p style="color:var(--ink3); font-size:0.85rem; font-style:italic;">A worked example: approximate ∫₀³ x² dx using n = 4 left-endpoint rectangles.</p>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h3>Identify the function and interval</h3>
+        <p>We wish to approximate the area under f(x) = x² on the interval [a, b] = [0, 3]. The exact value (by antiderivative) is x³/3, giving:</p>
+        <div class="math-inline">∫<sub>0</sub><sup>3</sup> x² dx = [x³/3]<sub>0</sub><sup>3</sup> = 27/3 − 0 = <strong>9</strong></div>
+        <p>We'll approximate this with rectangles and see how close we get.</p>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h3>Choose the number of subintervals n</h3>
+        <p>Let n = 4. We divide [0, 3] into 4 equal pieces. The width of each piece (subinterval) is:</p>
+        <div class="math-inline">Δx = (b − a) / n = (3 − 0) / 4 = <strong>0.75</strong></div>
+        <div class="highlight"><strong>Δx</strong> is the base of every rectangle. All rectangles have the same base for a uniform partition.</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h3>List the partition points</h3>
+        <p>The endpoints of each subinterval are:</p>
+        <div class="math-inline">
+          x<sub>0</sub> = 0,&nbsp; x<sub>1</sub> = 0.75,&nbsp; x<sub>2</sub> = 1.5,&nbsp; x<sub>3</sub> = 2.25,&nbsp; x<sub>4</sub> = 3
+        </div>
+        <p>In general: x<sub>i</sub> = a + i · Δx = 0 + i · 0.75</p>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h3>Choose sample points x<sub>i</sub>*</h3>
+        <p>Using the <strong>left endpoint rule</strong>, the sample point in each subinterval [x<sub>i−1</sub>, x<sub>i</sub>] is its left endpoint x<sub>i−1</sub>:</p>
+        <div class="math-inline">
+          x<sub>1</sub>* = 0,&nbsp; x<sub>2</sub>* = 0.75,&nbsp; x<sub>3</sub>* = 1.5,&nbsp; x<sub>4</sub>* = 2.25
+        </div>
+        <div class="highlight"><strong>The sample point</strong> determines the <em>height</em> of each rectangle. It can be any point in the subinterval — you have freedom of choice, and any valid choice gives the same limit as n → ∞.</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <h3>Evaluate f at each sample point</h3>
+        <p>Plug each x<sub>i</sub>* into f(x) = x² to get the rectangle heights:</p>
+        <div class="math-inline">
+          f(0) = 0,&nbsp; f(0.75) = 0.5625,&nbsp; f(1.5) = 2.25,&nbsp; f(2.25) = 5.0625
+        </div>
+        <p>These are the heights of the four rectangles.</p>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">6</div>
+      <div class="step-content">
+        <h3>Compute each rectangle's area</h3>
+        <p>Area of each rectangle = height × width = f(x<sub>i</sub>*) · Δx:</p>
+        <div class="math-inline">
+          0 × 0.75 = 0<br>
+          0.5625 × 0.75 = 0.421875<br>
+          2.25 × 0.75 = 1.6875<br>
+          5.0625 × 0.75 = 3.796875
+        </div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">7</div>
+      <div class="step-content">
+        <h3>Sum all rectangle areas</h3>
+        <p>The Riemann sum S₄ is the total of all rectangle areas:</p>
+        <div class="math-inline">
+          S<sub>4</sub> = 0 + 0.421875 + 1.6875 + 3.796875 = <strong>5.90625</strong>
+        </div>
+        <div class="highlight">
+          <strong>Exact value:</strong> 9 &nbsp;|&nbsp; <strong>Approximation:</strong> 5.906 &nbsp;|&nbsp; <strong>Error:</strong> 3.094 (34.4%)<br><br>
+          This large error is expected with only 4 rectangles and left endpoints on an increasing function. The left rule systematically underestimates here because f is increasing — each rectangle's height is less than the function's maximum on that interval.
+        </div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">8</div>
+      <div class="step-content">
+        <h3>Refine by increasing n</h3>
+        <p>Repeat with n = 20, 100, 1000. As n → ∞, S<sub>n</sub> → 9:</p>
+        <div class="math-inline">
+          n=4: S = 5.906 (error 34%)<br>
+          n=20: S = 8.099 (error 10%)<br>
+          n=100: S = 8.820 (error 2%)<br>
+          n=1000: S = 8.982 (error 0.2%)
+        </div>
+        <p>Each doubling of n roughly halves the error for the left/right rules — error ∼ O(1/n). The midpoint rule achieves O(1/n²).</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-convergence">
+  <div class="conv-body">
+
+    <h2 style="font-family:'Cormorant Garamond',serif; font-size:1.8rem; font-weight:400; margin-bottom:0.5rem;">Error Convergence</h2>
+    <p style="color:var(--ink3); font-size:0.88rem; margin-bottom:1.5rem;">How quickly does each rule converge? Select a function to see the error decay as n increases.</p>
+
+    <div style="margin-bottom:1.2rem; display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+      <span style="font-family:'JetBrains Mono',monospace; font-size:0.65rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--ink3);">Function:</span>
+      <button class="grp-btn fn-btn active" data-cfn="0" style="font-size:0.85rem">x²</button>
+      <button class="grp-btn fn-btn" data-cfn="1" style="font-size:0.85rem">sin x</button>
+      <button class="grp-btn fn-btn" data-cfn="2" style="font-size:0.85rem">√x</button>
+    </div>
+
+    <div class="conv-grid">
+      <div class="conv-card">
+        <div class="conv-card-head">Error vs n (log scale)</div>
+        <canvas id="convCanvas1" width="420" height="280"></canvas>
+      </div>
+      <div class="conv-card">
+        <div class="conv-card-head">Sum convergence to exact value</div>
+        <canvas id="convCanvas2" width="420" height="280"></canvas>
+      </div>
+    </div>
+
+    <div class="conv-table-wrap">
+      <table class="conv-table" id="convTable">
+        <thead>
+          <tr>
+            <th>n</th>
+            <th>Left Sum</th>
+            <th>Midpoint Sum</th>
+            <th>Right Sum</th>
+            <th>Exact</th>
+            <th>Left Error</th>
+            <th>Mid Error</th>
+            <th>Right Error</th>
+          </tr>
+        </thead>
+        <tbody id="convTableBody"></tbody>
+      </table>
+    </div>
+
+    <div style="margin-top:1.5rem; background:var(--bg-card); border:1px solid var(--rule); padding:1.2rem 1.5rem; border-radius:3px;">
+      <h3 style="font-family:'Cormorant Garamond',serif; font-size:1.2rem; font-style:italic; color:var(--gold); margin-bottom:0.6rem;">Error Rates Explained</h3>
+      <p style="font-size:0.88rem; color:var(--ink2);">
+        <strong>Left/Right rules:</strong> Error ≈ C · (b−a)² · f′(avg) / n. Halving Δx halves the error — <em>first order</em> convergence.<br><br>
+        <strong>Midpoint rule:</strong> Error ≈ C · (b−a)³ · f″(avg) / n². Halving Δx quarters the error — <em>second order</em> convergence. This is why midpoint is almost always preferable.<br><br>
+        <strong>Trapezoid rule</strong> (average of left+right): Also second order. Simpson's Rule (combining midpoint and trapezoid) achieves fourth order.
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-glossary">
+  <div class="gloss-body">
+    <h2 style="font-family:'Cormorant Garamond',serif; font-size:1.8rem; font-weight:400; margin-bottom:1.5rem; border-bottom:2px solid var(--ink); padding-bottom:0.5rem;">Glossary of Terms</h2>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Partition P</div>
+      <div class="gloss-def">A finite set of points <span class="symbol">a = x<sub>0</sub> &lt; x<sub>1</sub> &lt; ⋯ &lt; x<sub>n</sub> = b</span> that subdivides [a, b] into n subintervals. A <em>uniform</em> partition has all subintervals of equal width Δx = (b−a)/n.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Subinterval [xᵢ₋₁, xᵢ]</div>
+      <div class="gloss-def">The i-th piece of the partition. Each rectangle in the Riemann sum occupies exactly one subinterval as its base. There are n subintervals in total.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Δx (Delta x)</div>
+      <div class="gloss-def">The width of each subinterval. For a uniform partition: <span class="symbol">Δx = (b − a) / n</span>. As n → ∞, Δx → 0. This is simultaneously the base of each rectangle and the "step size" in the approximation.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Sample Point xᵢ*</div>
+      <div class="gloss-def">Any point chosen from the i-th subinterval [xᵢ₋₁, xᵢ]. Its function value f(xᵢ*) becomes the height of the i-th rectangle. The choice of sample point defines the rule: left, right, midpoint, maximum, minimum, or arbitrary.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Rectangle Area</div>
+      <div class="gloss-def">The contribution of the i-th term to the sum: <span class="symbol">f(xᵢ*) · Δx</span>. If f(xᵢ*) &lt; 0, this contributes a negative amount, representing area <em>below</em> the x-axis.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Mesh ‖P‖</div>
+      <div class="gloss-def">The width of the widest subinterval in the partition. For non-uniform partitions, the Riemann sum converges to the integral as ‖P‖ → 0, not just as n → ∞.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Upper Sum U(f, P)</div>
+      <div class="gloss-def">A Riemann sum where each sample point is chosen to maximize f on its subinterval: <span class="symbol">U = Σ M<sub>i</sub> · Δx</span>, where M<sub>i</sub> = sup f on [xᵢ₋₁, xᵢ]. Always ≥ the true integral.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Lower Sum L(f, P)</div>
+      <div class="gloss-def">A Riemann sum where each sample point minimizes f: <span class="symbol">L = Σ mᵢ · Δx</span>, where mᵢ = inf f on [xᵢ₋₁, xᵢ]. Always ≤ the true integral.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Riemann-integrable</div>
+      <div class="gloss-def">A bounded function f is Riemann-integrable on [a, b] if and only if lim<sub>‖P‖→0</sub> [U(f,P) − L(f,P)] = 0. All continuous functions and all monotone functions on [a, b] are Riemann-integrable.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Definite Integral</div>
+      <div class="gloss-def">The limit of Riemann sums: <span class="symbol">∫<sub>a</sub><sup>b</sup> f(x) dx = lim<sub>n→∞</sub> Σ f(xᵢ*) · Δx</span>. It represents the net signed area between f and the x-axis over [a, b]. This is the formal definition — the Fundamental Theorem provides a way to compute it via antiderivatives.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Signed Area</div>
+      <div class="gloss-def">The definite integral accumulates positive area where f(x) > 0 and negative area where f(x) &lt; 0. The total is the algebraic sum — regions below the axis subtract from the total.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Convergence Rate</div>
+      <div class="gloss-def">How quickly the error shrinks as n increases. Left/right rules: O(1/n). Midpoint rule: O(1/n²). This means doubling n halves the error for left/right, but quarters it for midpoint.</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ═════════════ DATA ═════════════ */
+const FNS = [
+  { label:'x²',    f: x=>x*x,              exact:(a,b)=>b**3/3-a**3/3 },
+  { label:'sin x', f: x=>Math.sin(x),       exact:(a,b)=>-Math.cos(b)+Math.cos(a) },
+  { label:'√x',    f: x=>x>=0?Math.sqrt(x):0, exact:(a,b)=>2/3*(Math.max(b,0)**1.5-Math.max(a,0)**1.5) },
+  { label:'eˣ/4',  f: x=>Math.exp(x)/4,    exact:(a,b)=>(Math.exp(b)-Math.exp(a))/4 },
+  { label:'x³−2x', f: x=>x**3-2*x,         exact:(a,b)=>(b**4/4-b**2)-(a**4/4-a**2) },
+  { label:'1/x',   f: x=>x!==0?1/x:NaN,    exact:(a,b)=>Math.log(Math.abs(b))-Math.log(Math.abs(a)) },
+];
+
+const METHOD_DESC = {
+  left:  'Uses left endpoints xᵢ = a + iΔx as the sample point in each subinterval.',
+  mid:   'Uses midpoints x̄ᵢ = a + (i + ½)Δx. Most accurate of the three standard rules — error is O(Δx²).',
+  right: 'Uses right endpoints xᵢ = a + (i+1)Δx. Overestimates increasing functions.',
+  upper: 'Chooses the maximum value of f on each subinterval — always an overestimate (Darboux upper sum).',
+  lower: 'Chooses the minimum value of f on each subinterval — always an underestimate (Darboux lower sum).',
+};
+
+let S = { fnIdx:0, method:'left', n:8, a:0, b:3, showDelta:true, showDots:true, showHeight:true, showShade:false };
+
+/* ═════════════ THEME TOGGLE ═════════════ */
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const root = document.documentElement;
+  if (root.getAttribute('data-theme') === 'dark') {
+    root.removeAttribute('data-theme');
+  } else {
+    root.setAttribute('data-theme', 'dark');
+  }
+  
+  // Redraw canvases with new CSS variable colors
+  drawMain();
+  if (document.getElementById('tab-convergence').classList.contains('active')) {
+    drawConvergence();
+  }
+});
+
+/* ═════════════ RIEMANN ═════════════ */
+function sampleX(x0, x1, method, fn) {
+  if (method==='left')  return x0;
+  if (method==='right') return x1;
+  if (method==='mid')   return (x0+x1)/2;
+  // upper/lower: sample 50 pts
+  let best = x0, bv = fn(x0);
+  for(let k=0;k<=50;k++){
+    const x=x0+(x1-x0)*k/50, v=fn(x);
+    if(!isFinite(v)) continue;
+    if(method==='upper' && v>bv){bv=v;best=x;}
+    if(method==='lower' && v<bv){bv=v;best=x;}
+  }
+  return best;
+}
+
+function computeSum(fnIdx, method, n, a, b) {
+  const f = FNS[fnIdx].f;
+  const dx = (b-a)/n;
+  let sum=0;
+  for(let i=0;i<n;i++){
+    const x0=a+i*dx, x1=x0+dx;
+    const sx = sampleX(x0,x1,method,f);
+    const fy = f(sx);
+    if(isFinite(fy)) sum+=fy*dx;
+  }
+  return sum;
+}
+
+/* ═════════════ MAIN CANVAS ═════════════ */
+function setupHighDPICanvas(canvasId, cssWidth, cssHeight) {
+  const cv = document.getElementById(canvasId);
+  const ctx = cv.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+
+  cv.width = cssWidth * dpr;
+  cv.height = cssHeight * dpr;
+
+  cv.style.width = cssWidth + 'px';
+  cv.style.height = cssHeight + 'px';
+
+  ctx.scale(dpr, dpr);
+  return { cv, ctx, W: cssWidth, H: cssHeight };
+}
+
+const { cv, ctx, W, H } = setupHighDPICanvas('mainCanvas', 680, 460);
+const PAD = {t:28,r:24,b:44,l:52};
+
+function toCanvas(wx,wy,xmin,xmax,ymin,ymax){
+  const innerW = W - PAD.l - PAD.r, innerH = H - PAD.t - PAD.b;
+  return [PAD.l+(wx-xmin)/(xmax-xmin)*innerW, PAD.t+(1-(wy-ymin)/(ymax-ymin))*innerH];
+}
+
+function drawMain(){
+  const {fnIdx,method,n,a,b} = S;
+  const f = FNS[fnIdx].f;
+  const dx=(b-a)/n;
+  
+  // Read theme colors dynamically
+  const rs = getComputedStyle(document.documentElement);
+  const cCanvasBg = rs.getPropertyValue('--canvas-bg').trim() || '#ffffff';
+  const cGridLine = rs.getPropertyValue('--grid-line').trim() || '#f0ede6';
+  const cAxLine = rs.getPropertyValue('--ax-line').trim() || '#b0aa98';
+  const cAxText = rs.getPropertyValue('--ax-text').trim() || '#9a9280';
+  const cTickLine = rs.getPropertyValue('--tick-line').trim() || '#d0ccc0';
+  const cShadeExact = rs.getPropertyValue('--shade-exact').trim() || 'rgba(42,122,106,0.12)';
+  const cHeightLine = rs.getPropertyValue('--height-line').trim() || 'rgba(42,74,122,0.35)';
+  const cIntMarker = rs.getPropertyValue('--int-marker').trim() || 'rgba(181,130,42,0.4)';
+  const cRectPos = rs.getPropertyValue('--rect-pos').trim() || 'rgba(181,130,42,0.16)';
+  const cRectNeg = rs.getPropertyValue('--rect-neg').trim() || 'rgba(138,42,58,0.16)';
+  const cRectStrPos = rs.getPropertyValue('--rect-str-pos').trim() || 'rgba(181,130,42,0.65)';
+  const cRectStrNeg = rs.getPropertyValue('--rect-str-neg').trim() || 'rgba(138,42,58,0.65)';
+  const cTeal = rs.getPropertyValue('--teal').trim() || '#2a7a6a';
+  const cGold = rs.getPropertyValue('--gold').trim() || '#b5822a';
+
+  // y range
+  let ymin=0,ymax=0;
+  for(let i=0;i<=400;i++){
+    const x=a+(b-a)*i/400, y=f(x);
+    if(isFinite(y)){ymin=Math.min(ymin,y);ymax=Math.max(ymax,y);}
+  }
+  for(let i=0;i<n;i++){
+    const x0=a+i*dx,x1=x0+dx;
+    const sx=sampleX(x0,x1,method,f);
+    const y=f(sx);
+    if(isFinite(y)){ymin=Math.min(ymin,y);ymax=Math.max(ymax,y);}
+  }
+  ymin=Math.min(ymin,0); ymax=Math.max(ymax,0);
+  const yp=(ymax-ymin)*0.18||0.5;
+  const xp=(b-a)*0.12;
+  const xmin=a-xp,xmax=b+xp,YMN=ymin-yp,YMX=ymax+yp;
+  const tc=(wx,wy)=>toCanvas(wx,wy,xmin,xmax,YMN,YMX);
+
+  // Clear
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=cCanvasBg;
+  ctx.fillRect(0,0,W,H);
+
+  // Exact shade
+  if(S.showShade){
+    ctx.save();
+    ctx.beginPath();
+    const [xs0]=tc(a,0); const [,ys0]=tc(a,0);
+    ctx.moveTo(xs0,ys0);
+    for(let i=0;i<=300;i++){
+      const x=a+(b-a)*i/300,y=f(x);
+      if(!isFinite(y)) continue;
+      const [cx,cy]=tc(x,y);
+      ctx.lineTo(cx,cy);
+    }
+    const [xb]=tc(b,0); const [,yax]=tc(b,0);
+    ctx.lineTo(xb,yax);
+    ctx.closePath();
+    ctx.fillStyle=cShadeExact;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Grid
+  ctx.strokeStyle=cGridLine;
+  ctx.lineWidth=1;
+  for(let gi=0;gi<=5;gi++){
+    const gy=YMN+(YMX-YMN)*gi/5;
+    const [,cy]=tc(0,gy);
+    ctx.beginPath();ctx.moveTo(PAD.l,cy);ctx.lineTo(W-PAD.r,cy);ctx.stroke();
+  }
+
+  // Rectangles
+  for(let i=0;i<n;i++){
+    const x0=a+i*dx,x1=x0+dx;
+    const sx=sampleX(x0,x1,method,f);
+    const fy=f(sx);
+    if(!isFinite(fy)) continue;
+    const [cx0]=tc(x0,0); const [cx1]=tc(x1,0);
+    const [,cy0]=tc(sx,0); const [,cyf]=tc(sx,fy);
+    const rt=Math.min(cy0,cyf), rh=Math.abs(cy0-cyf);
+    ctx.fillStyle= fy>=0 ? cRectPos : cRectNeg;
+    ctx.fillRect(cx0,rt,cx1-cx0,rh);
+    ctx.strokeStyle= fy>=0 ? cRectStrPos : cRectStrNeg;
+    ctx.lineWidth=1;
+    ctx.strokeRect(cx0,rt,cx1-cx0,rh);
+
+    // Height annotation
+    if(S.showHeight && n<=16){
+      const [hx,hy0]=tc(sx,0);
+      const [,hyf]=tc(sx,fy);
+      ctx.strokeStyle=cHeightLine;
+      ctx.lineWidth=1;
+      ctx.setLineDash([3,3]);
+      ctx.beginPath();ctx.moveTo(hx,Math.min(hy0,hyf)-1);ctx.lineTo(hx,Math.max(hy0,hyf)+1);ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  // Axes
+  const [,axY]=tc(0,0);
+  const [ayX]=tc(0,0);
+  ctx.strokeStyle=cAxLine; ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(PAD.l,axY);ctx.lineTo(W-PAD.r,axY);ctx.stroke();
+  if(ayX>=PAD.l&&ayX<=W-PAD.r){
+    ctx.beginPath();ctx.moveTo(ayX,PAD.t);ctx.lineTo(ayX,H-PAD.b);ctx.stroke();
+  }
+
+  // Axis labels
+  ctx.fillStyle=cAxText; ctx.font='11px JetBrains Mono,monospace';
+  ctx.textAlign='center';
+  [a,(a+b)/2,b].forEach(tx=>{
+    const [cx,cy]=tc(tx,0);
+    ctx.fillText(tx.toFixed(1),cx,H-PAD.b+16);
+    ctx.strokeStyle=cTickLine; ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(cx,axY-3);ctx.lineTo(cx,axY+3);ctx.stroke();
+  });
+  ctx.textAlign='right';
+  const yTk=[ymin,0,ymax].filter((v,i,a)=>a.indexOf(v)===i);
+  yTk.forEach(ty=>{
+    const [,cy]=tc(0,ty);
+    if(cy<PAD.t+4||cy>H-PAD.b-4) return;
+    ctx.fillText(ty.toFixed(1),PAD.l-6,cy+4);
+  });
+
+  // Curve
+  ctx.strokeStyle=cTeal; ctx.lineWidth=2.5; ctx.lineJoin='round';
+  ctx.beginPath(); let started=false;
+  for(let i=0;i<=500;i++){
+    const wx=xmin+(xmax-xmin)*i/500, wy=f(wx);
+    if(!isFinite(wy)){started=false;continue;}
+    const [cx,cy]=tc(wx,wy);
+    if(!started){ctx.moveTo(cx,cy);started=true;}else ctx.lineTo(cx,cy);
+  }
+  ctx.stroke();
+
+  // Δx annotation
+  if(S.showDelta && n<=20){
+    const i0=0;
+    const cx0arr=tc(a,0), cx1arr=tc(a+dx,0);
+    const arrowY = H-PAD.b+30;
+    ctx.strokeStyle=cGold; ctx.fillStyle=cGold; ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.moveTo(cx0arr[0]+2,arrowY);ctx.lineTo(cx1arr[0]-2,arrowY);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx0arr[0]+6,arrowY-3);ctx.lineTo(cx0arr[0]+1,arrowY);ctx.lineTo(cx0arr[0]+6,arrowY+3);ctx.fill();
+    ctx.beginPath();ctx.moveTo(cx1arr[0]-6,arrowY-3);ctx.lineTo(cx1arr[0]-1,arrowY);ctx.lineTo(cx1arr[0]-6,arrowY+3);ctx.fill();
+    ctx.fillStyle=cGold; ctx.font='italic 11px Cormorant Garamond,serif';
+    ctx.textAlign='center';
+    ctx.fillText('Δx = '+dx.toFixed(3),(cx0arr[0]+cx1arr[0])/2,arrowY+12);
+  }
+
+  // Sample point dots
+  if(S.showDots){
+    for(let i=0;i<n;i++){
+      const x0=a+i*dx,x1=x0+dx;
+      const sx=sampleX(x0,x1,method,f);
+      const fy=f(sx);
+      if(!isFinite(fy)) continue;
+      const [cx,cy]=tc(sx,fy);
+      ctx.fillStyle=cGold;
+      ctx.beginPath();ctx.arc(cx,cy,4,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle=cCanvasBg; ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(cx,cy,4,0,Math.PI*2);ctx.stroke();
+    }
+  }
+
+  // Interval markers
+  ctx.strokeStyle=cIntMarker;
+  ctx.lineWidth=1.2; ctx.setLineDash([4,5]);
+  const [caX]=tc(a,0); const [cbX]=tc(b,0);
+  ctx.beginPath();ctx.moveTo(caX,PAD.t);ctx.lineTo(caX,H-PAD.b);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cbX,PAD.t);ctx.lineTo(cbX,H-PAD.b);ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle=cGold; ctx.font='italic 13px Cormorant Garamond,serif';
+  ctx.textAlign='center';
+  ctx.fillText('a',caX,H-PAD.b+38);
+  ctx.fillText('b',cbX,H-PAD.b+38);
+
+  updateStats();
+}
+
+function updateStats(){
+  const {fnIdx,method,n,a,b}=S;
+  const sum=computeSum(fnIdx,method,n,a,b);
+  const ex=FNS[fnIdx].exact(a,b);
+  const err=Math.abs(sum-ex);
+  document.getElementById('sumVal').textContent=sum.toFixed(5);
+  document.getElementById('exactVal').textContent=isFinite(ex)?ex.toFixed(5):'—';
+  document.getElementById('errVal').textContent=isFinite(err)?err.toFixed(5):'—';
+
+  // Live formula
+  const mLabel = {left:'x<sub>i</sub>',mid:'x̄<sub>i</sub>',right:'x<sub>i+1</sub>',upper:'M<sub>i</sub>',lower:'m<sub>i</sub>'}[method]||'x*';
+  document.getElementById('liveFormula').innerHTML=
+    `S<sub>${n}</sub> = Σ<sub>i=0</sub><sup>${n}−1</sup> f(${mLabel}) · ${((b-a)/n).toFixed(3)}`;
+}
+
+/* ═════════════ CONVERGENCE CHARTS ═════════════ */
+let cFnIdx=0;
+
+function drawConvergence(){
+  const ns=[1,2,4,8,16,32,64,128,256];
+  const exact=FNS[cFnIdx].exact(0,3);
+  const a=0,b=3;
+  
+  // Read theme colors dynamically
+  const rs = getComputedStyle(document.documentElement);
+  const cCanvasBg = rs.getPropertyValue('--canvas-bg').trim() || '#ffffff';
+  const cGridLine = rs.getPropertyValue('--grid-line').trim() || '#f0ede6';
+  const cAxText = rs.getPropertyValue('--ax-text').trim() || '#9a9280';
+  const cGold = rs.getPropertyValue('--gold').trim() || '#b5822a';
+  const cTeal = rs.getPropertyValue('--teal').trim() || '#2a7a6a';
+  const cRose = rs.getPropertyValue('--rose').trim() || '#8a2a3a';
+  const cInk2 = rs.getPropertyValue('--ink2').trim() || '#3d3a30';
+  const cBlueShade = rs.getPropertyValue('--blue-shade').trim() || 'rgba(42,74,122,0.4)';
+  const cBlue = rs.getPropertyValue('--blue').trim() || '#2a4a7a';
+
+  // Errors
+  const lefts=ns.map(n=>computeSum(cFnIdx,'left',n,a,b));
+  const mids =ns.map(n=>computeSum(cFnIdx,'mid',n,a,b));
+  const rights=ns.map(n=>computeSum(cFnIdx,'right',n,a,b));
+  const lErr=lefts.map(v=>Math.abs(v-exact));
+  const mErr=mids.map(v=>Math.abs(v-exact));
+  const rErr=rights.map(v=>Math.abs(v-exact));
+
+  // Chart 1: log error
+  const c1=document.getElementById('convCanvas1');
+  const x1=c1.getContext('2d');
+  const W1=c1.width,H1=c1.height;
+  const p={t:20,r:20,b:40,l:55};
+  x1.clearRect(0,0,W1,H1);
+  x1.fillStyle=cCanvasBg;
+  x1.fillRect(0,0,W1,H1);
+
+  const allErr=[...lErr,...mErr,...rErr].filter(v=>v>0&&isFinite(v));
+  if(allErr.length===0) return;
+  const logMax=Math.log10(Math.max(...allErr))+0.3;
+  const logMin=Math.log10(Math.min(...allErr))-0.3;
+  const logNs=ns.map(n=>Math.log10(n));
+  const minLN=logNs[0]-0.2, maxLN=logNs[logNs.length-1]+0.2;
+
+  function pt1(n,err){
+    const lx=Math.log10(n), ly=isFinite(err)&&err>0?Math.log10(err):logMin-1;
+    const cx=p.l+(lx-minLN)/(maxLN-minLN)*(W1-p.l-p.r);
+    const cy=p.t+(1-(ly-logMin)/(logMax-logMin))*(H1-p.t-p.b);
+    return [cx,cy];
+  }
+
+  // Grid
+  x1.strokeStyle=cGridLine;
+  x1.lineWidth=1;
+  for(let g=Math.floor(logMin);g<=Math.ceil(logMax);g++){
+    const [,cy]=pt1(1,Math.pow(10,g));
+    x1.beginPath();x1.moveTo(p.l,cy);x1.lineTo(W1-p.r,cy);x1.stroke();
+    x1.fillStyle=cAxText;x1.font='10px JetBrains Mono,monospace';x1.textAlign='right';
+    x1.fillText('10^'+g,p.l-4,cy+4);
+  }
+
+  function plotLine(errs,color){
+    x1.strokeStyle=color;x1.lineWidth=2;x1.beginPath();
+    errs.forEach((e,i)=>{
+      const [cx,cy]=pt1(ns[i],e);
+      i===0?x1.moveTo(cx,cy):x1.lineTo(cx,cy);
+    });
+    x1.stroke();
+    errs.forEach((e,i)=>{
+      const [cx,cy]=pt1(ns[i],e);
+      x1.fillStyle=color;x1.beginPath();x1.arc(cx,cy,3,0,Math.PI*2);x1.fill();
+    });
+  }
+  plotLine(lErr, cGold);
+  plotLine(mErr, cTeal);
+  plotLine(rErr, cRose);
+
+  // x labels
+  x1.fillStyle=cAxText;x1.font='10px JetBrains Mono,monospace';x1.textAlign='center';
+  [1,8,64,256].forEach(n=>{
+    const [cx]=pt1(n,1);
+    x1.fillText(n,cx,H1-p.b+14);
+  });
+  x1.fillText('n',W1/2,H1-4);
+
+  // Legend
+  [['Left',cGold],['Mid',cTeal],['Right',cRose]].forEach(([lbl,col],i)=>{
+    x1.fillStyle=col;x1.fillRect(p.l+5+i*60,p.t+2,10,3);
+    x1.fillStyle=cInk2;x1.font='9px JetBrains Mono,monospace';x1.textAlign='left';
+    x1.fillText(lbl,p.l+18+i*60,p.t+6);
+  });
+
+  // Chart 2: convergence to exact
+  const c2=document.getElementById('convCanvas2');
+  const x2=c2.getContext('2d');
+  const W2=c2.width,H2=c2.height;
+  x2.clearRect(0,0,W2,H2);
+  x2.fillStyle=cCanvasBg;
+  x2.fillRect(0,0,W2,H2);
+
+  const allVals=[...lefts,...mids,...rights,exact].filter(isFinite);
+  const vmin=Math.min(...allVals)-Math.abs(exact)*0.05;
+  const vmax=Math.max(...allVals)+Math.abs(exact)*0.05;
+
+  function pt2(n,v){
+    const lx=Math.log10(n);
+    const cx=p.l+(lx-minLN)/(maxLN-minLN)*(W2-p.l-p.r);
+    const cy=p.t+(1-(v-vmin)/(vmax-vmin))*(H2-p.t-p.b);
+    return [cx,cy];
+  }
+
+  // Exact line
+  const [,ey]=pt2(1,exact);
+  x2.strokeStyle=cBlueShade;x2.lineWidth=1;x2.setLineDash([4,4]);
+  x2.beginPath();x2.moveTo(p.l,ey);x2.lineTo(W2-p.r,ey);x2.stroke();
+  x2.setLineDash([]);
+  x2.fillStyle=cBlue;x2.font='9px JetBrains Mono,monospace';x2.textAlign='left';
+  x2.fillText('exact',p.l+2,ey-3);
+
+  function plotLine2(vals,color){
+    x2.strokeStyle=color;x2.lineWidth=2;x2.beginPath();
+    vals.forEach((v,i)=>{
+      const [cx,cy]=pt2(ns[i],v);
+      i===0?x2.moveTo(cx,cy):x2.lineTo(cx,cy);
+    });
+    x2.stroke();
+    vals.forEach((v,i)=>{
+      const [cx,cy]=pt2(ns[i],v);
+      x2.fillStyle=color;x2.beginPath();x2.arc(cx,cy,3,0,Math.PI*2);x2.fill();
+    });
+  }
+  plotLine2(lefts,cGold);
+  plotLine2(mids,cTeal);
+  plotLine2(rights,cRose);
+
+  x2.fillStyle=cAxText;x2.font='10px JetBrains Mono,monospace';x2.textAlign='center';
+  [1,8,64,256].forEach(n=>{
+    const [cx]=pt2(n,vmin);
+    x2.fillText(n,cx,H2-p.b+14);
+  });
+
+  // Table
+  const tbody=document.getElementById('convTableBody');
+  const tableNs=[1,2,4,8,16,32,64,128,256];
+  tbody.innerHTML=tableNs.map(n=>{
+    const l=computeSum(cFnIdx,'left',n,a,b);
+    const m=computeSum(cFnIdx,'mid',n,a,b);
+    const r=computeSum(cFnIdx,'right',n,a,b);
+    const le=Math.abs(l-exact),me=Math.abs(m-exact),re=Math.abs(r-exact);
+    const cls=v=>v<0.001?'good':v>0.5?'bad':'';
+    return `<tr>
+      <td>${n}</td>
+      <td>${l.toFixed(5)}</td>
+      <td>${m.toFixed(5)}</td>
+      <td>${r.toFixed(5)}</td>
+      <td>${exact.toFixed(5)}</td>
+      <td class="${cls(le)}">${le.toFixed(5)}</td>
+      <td class="${cls(me)}">${me.toFixed(5)}</td>
+      <td class="${cls(re)}">${re.toFixed(5)}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ═════════════ WIRING ═════════════ */
+// Tabs
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab==='convergence') drawConvergence();
+  });
+});
+
+// Function buttons (main)
+document.querySelectorAll('[data-fn]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('[data-fn]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    S.fnIdx=+btn.dataset.fn;
+    drawMain();
+  });
+});
+
+// Method
+document.querySelectorAll('[data-m]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('[data-m]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    S.method=btn.dataset.m;
+    document.getElementById('methodDesc').textContent=METHOD_DESC[S.method]||'';
+    drawMain();
+  });
+});
+
+// Sliders
+document.getElementById('nSlider').addEventListener('input',e=>{
+  S.n=+e.target.value;
+  document.getElementById('nVal').textContent=S.n;
+  drawMain();
+});
+document.getElementById('aSlider').addEventListener('input',e=>{
+  S.a=+e.target.value;
+  if(S.a>=S.b){S.b=S.a+0.25;document.getElementById('bSlider').value=S.b;}
+  document.getElementById('aVal').textContent=S.a;
+  document.getElementById('bVal').textContent=S.b;
+  drawMain();
+});
+document.getElementById('bSlider').addEventListener('input',e=>{
+  S.b=+e.target.value;
+  if(S.b<=S.a){S.a=S.b-0.25;document.getElementById('aSlider').value=S.a;}
+  document.getElementById('aVal').textContent=S.a;
+  document.getElementById('bVal').textContent=S.b;
+  drawMain();
+});
+
+// Annotation toggles
+['showDelta','showDots','showHeight','showShade'].forEach(id=>{
+  document.getElementById(id).addEventListener('change',e=>{
+    S[id]=e.target.checked;
+    drawMain();
+  });
+});
+
+// Convergence function buttons
+document.querySelectorAll('[data-cfn]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('[data-cfn]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    cFnIdx=+btn.dataset.cfn;
+    drawConvergence();
+  });
+});
+
+// Init
+drawMain();
+</script>
+</body>
+</html>

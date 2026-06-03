@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Geometry & Algebra — Foundations of Calculus</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg: #f7f4ee;
+  --bg2: #efebe2;
+  --bg-card: #ffffff;
+  --ink: #1a1810;
+  --ink2: #3d3a30;
+  --ink3: #7a7060;
+  --rule: #d4cec0;
+  --gold: #b5822a;
+  --gold-lt: #e8c87a;
+  --teal: #2a7a6a;
+  --blue: #2a4a7a;
+  --rose: #8a2a3a;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Lora', serif;
+  line-height: 1.8;
+}
+
+.site-header {
+  border-bottom: 2px solid var(--ink);
+  padding: 2.5rem 2rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.title-block h1 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(2.7rem, 6vw, 4.8rem);
+  font-weight: 300;
+  line-height: 1;
+}
+
+.title-block h1 em {
+  color: var(--gold);
+  font-style: italic;
+}
+
+.subtitle {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink3);
+  margin-top: 0.6rem;
+}
+
+.header-formula {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.6rem;
+  font-style: italic;
+  border-left: 3px solid var(--gold);
+  padding-left: 1rem;
+  color: var(--ink2);
+}
+
+.tab-nav {
+  display: flex;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--rule);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 10;
+}
+
+.tab-btn {
+  border: none;
+  background: none;
+  padding: 1rem 1.3rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink3);
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+
+.tab-btn.active {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.active {
+  display: block;
+}
+
+.content {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 3rem 2rem 5rem;
+}
+
+h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2.2rem;
+  font-weight: 400;
+  margin: 3rem 0 1rem;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 0.5rem;
+}
+
+h2:first-child {
+  margin-top: 0;
+}
+
+h3 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.4rem;
+  color: var(--gold);
+  font-style: italic;
+  margin: 2rem 0 0.8rem;
+}
+
+p {
+  margin-bottom: 1rem;
+  color: var(--ink2);
+}
+
+.definition,
+.insight,
+.warning,
+.note {
+  padding: 1.2rem 1.5rem;
+  border: 1px solid var(--rule);
+  margin: 1.5rem 0;
+  border-radius: 3px;
+  background: var(--bg-card);
+}
+
+.definition {
+  border-left: 4px solid var(--gold);
+}
+
+.insight {
+  border-left: 4px solid var(--teal);
+}
+
+.warning {
+  border-left: 4px solid var(--rose);
+}
+
+.note {
+  background: var(--bg2);
+}
+
+.label {
+  font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.62rem;
+  margin-bottom: 0.6rem;
+}
+
+.math-display {
+  text-align: center;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 1.7rem;
+  padding: 1.5rem;
+  background: var(--bg2);
+  border: 1px solid var(--rule);
+  margin: 1.5rem 0;
+}
+
+.topic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.topic-card {
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  padding: 1.3rem;
+}
+
+.topic-card h4 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.3rem;
+  color: var(--gold);
+  margin-bottom: 0.5rem;
+}
+
+.timeline {
+  margin-top: 2rem;
+}
+
+.timeline-item {
+  border-left: 2px solid var(--rule);
+  padding-left: 1.5rem;
+  margin-left: 0.6rem;
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.timeline-item::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  background: var(--gold);
+  border-radius: 50%;
+  position: absolute;
+  left: -6px;
+  top: 0.4rem;
+}
+
+.timeline-year {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  color: var(--ink3);
+  margin-bottom: 0.4rem;
+}
+
+.footer {
+  border-top: 1px solid var(--rule);
+  padding: 2rem;
+  text-align: center;
+  color: var(--ink3);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 700px) {
+  .site-header {
+    flex-direction: column;
+  }
+
+  .header-formula {
+    font-size: 1.2rem;
+  }
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="title-block">
+    <h1><em>Geometry</em> & Algebra</h1>
+    <div class="subtitle">The hidden structures beneath calculus</div>
+  </div>
+
+  <div class="header-formula">
+    lim Δx → 0 &nbsp; • &nbsp; slope, area, change, infinity
+  </div>
+</header>
+
+<nav class="tab-nav">
+  <button class="tab-btn active" data-tab="geometry">① Geometry</button>
+  <button class="tab-btn" data-tab="algebra">② Algebra</button>
+  <button class="tab-btn" data-tab="functions">③ Functions</button>
+  <button class="tab-btn" data-tab="limits">④ Limits</button>
+  <button class="tab-btn" data-tab="space">⑤ Coordinate Space</button>
+  <button class="tab-btn" data-tab="history">⑥ Historical Foundations</button>
+</nav>
+
+<section class="tab-panel active" id="tab-geometry">
+  <div class="content">
+
+    <h2>Geometry Before Calculus</h2>
+
+    <p>Calculus did not emerge from algebra alone. Its deepest roots are geometric. Long before derivatives and integrals existed formally, mathematicians were already confronting problems involving motion, curvature, tangent lines, and continuously changing shapes.</p>
+
+    <p>Ancient geometry was primarily the study of static objects: circles, triangles, polygons, spheres. But calculus required a new kind of geometry — a geometry of transformation and continuous variation.</p>
+
+    <div class="definition">
+      <div class="label">Core Idea</div>
+      <p>Geometry gave calculus its visual language. Every derivative is a geometric slope. Every integral is a geometric accumulation. Every limit is a geometric zoom process.</p>
+    </div>
+
+    <h3>The Tangent Line Problem</h3>
+
+    <p>Suppose a curve bends smoothly through space. At a single point, what does its direction mean? A straight line has one slope everywhere. But a curve changes direction continuously.</p>
+
+    <p>The tangent line emerged as the local linear approximation to the curve. This geometric idea became the derivative.</p>
+
+    <div class="math-display">
+      f'(x) = lim h → 0 [f(x+h) − f(x)] / h
+    </div>
+
+    <p>The derivative is not fundamentally algebraic. It is geometric. It measures the instantaneous orientation of the curve.</p>
+
+    <div class="insight">
+      <div class="label">Deep Insight</div>
+      <p>Calculus works because smooth curves become indistinguishable from straight lines under sufficient magnification. Local linearity is the central geometric miracle of differential calculus.</p>
+    </div>
+
+    <h3>Area as Accumulation</h3>
+
+    <p>Geometry also posed the opposite problem: not local direction, but total accumulation. How do we measure the area beneath a continuously varying boundary?</p>
+
+    <p>Polygons can be measured exactly. Curves cannot. The integral solves this by replacing the curved region with increasingly refined geometric approximations.</p>
+
+    <div class="math-display">
+      ∫ f(x) dx
+    </div>
+
+    <p>The integral is therefore the geometry of infinitely refined partitioning.</p>
+
+    <div class="topic-grid">
+      <div class="topic-card">
+        <h4>Curvature</h4>
+        <p>Curvature measures how rapidly direction changes. Straight lines have zero curvature; circles bend constantly.</p>
+      </div>
+
+      <div class="topic-card">
+        <h4>Continuity</h4>
+        <p>Continuous curves contain no jumps. Calculus fundamentally depends on continuity because limits require smooth transition.</p>
+      </div>
+
+      <div class="topic-card">
+        <h4>Local Approximation</h4>
+        <p>Smooth functions behave linearly over sufficiently small neighborhoods. This is why derivatives exist.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="tab-panel" id="tab-algebra">
+  <div class="content">
+
+    <h2>Algebra as the Engine of Calculus</h2>
+
+    <p>If geometry gave calculus its intuition, algebra gave it computational power. Geometry alone could visualize motion and area, but algebra allowed these ideas to be generalized into symbolic systems.</p>
+
+    <h3>Variables and Generality</h3>
+
+    <p>The invention of symbolic algebra transformed mathematics from specific numerical problems into universal relationships.</p>
+
+    <div class="definition">
+      <div class="label">Why Variables Matter</div>
+      <p>The symbol x is not merely a placeholder. It represents a continuously variable quantity — the essential object of calculus.</p>
+    </div>
+
+    <p>Without symbolic variables, there is no meaningful notion of a function changing continuously.</p>
+
+    <h3>Functions</h3>
+
+    <p>A function formalizes dependency. It encodes how one quantity changes as another changes.</p>
+
+    <div class="math-display">
+      y = f(x)
+    </div>
+
+    <p>Calculus studies how these relationships evolve under infinitesimal change.</p>
+
+    <h3>Polynomial Structure</h3>
+
+    <p>Polynomials became the first major class of functions studied in calculus because they are algebraically smooth and differentiable everywhere.</p>
+
+    <div class="math-display">
+      f(x) = ax³ + bx² + cx + d
+    </div>
+
+    <div class="note">
+      <div class="label">Observation</div>
+      <p>Every differentiation rule — product rule, chain rule, quotient rule — emerges from algebraic manipulation combined with limiting behavior.</p>
+    </div>
+
+    <h3>Infinite Processes</h3>
+
+    <p>Algebra also made infinite procedures manageable. Sequences and series allowed mathematicians to represent curves, oscillations, and transcendental functions symbolically.</p>
+
+    <div class="math-display">
+      eˣ = 1 + x + x²/2! + x³/3! + ...
+    </div>
+
+    <p>Calculus therefore became the algebra of infinity.</p>
+
+    <div class="warning">
+      <div class="label">Critical Point</div>
+      <p>Infinity is not a number. Calculus succeeds because limits describe behavior approaching infinity or infinitesimals without ever treating them as ordinary finite quantities.</p>
+    </div>
+
+  </div>
+</section>
+
+<section class="tab-panel" id="tab-functions">
+  <div class="content">
+
+    <h2>The Geometry of Functions</h2>
+
+    <p>Functions are bridges between algebra and geometry. Algebra defines them symbolically; geometry visualizes them spatially.</p>
+
+    <h3>Graphs as Spatial Objects</h3>
+
+    <p>The graph of a function converts an equation into geometry.</p>
+
+    <div class="math-display">
+      y = f(x)
+    </div>
+
+    <p>Every point on the graph corresponds to a pair (x, y). The graph becomes a geometric trace of algebraic behavior.</p>
+
+    <h3>Change and Motion</h3>
+
+    <p>Once graphs are interpreted dynamically, calculus emerges naturally. The derivative measures how rapidly the graph rises or falls.</p>
+
+    <div class="insight">
+      <div class="label">Key Perspective</div>
+      <p>The derivative is fundamentally a comparison between neighboring points on a graph. Calculus studies relationships between nearby states.</p>
+    </div>
+
+    <h3>Nonlinear Behavior</h3>
+
+    <p>Linear equations are simple because their rate of change is constant. Calculus exists because reality is nonlinear.</p>
+
+    <p>Acceleration, population growth, wave motion, gravity, optimization — all involve continuously changing rates.</p>
+
+  </div>
+</section>
+
+<section class="tab-panel" id="tab-limits">
+  <div class="content">
+
+    <h2>The Limit: Calculus' Foundational Idea</h2>
+
+    <p>The limit is the conceptual engine of calculus. It formalizes the idea of approaching without necessarily reaching.</p>
+
+    <div class="math-display">
+      lim x→a f(x)
+    </div>
+
+    <h3>Why Limits Matter</h3>
+
+    <p>Derivatives require intervals shrinking toward zero. Integrals require partitions becoming infinitely refined. Continuity requires values approaching one another smoothly.</p>
+
+    <p>All of calculus is therefore structured around limiting behavior.</p>
+
+    <div class="definition">
+      <div class="label">The Essential Principle</div>
+      <p>Calculus replaces impossible exact processes with sequences of increasingly accurate approximations.</p>
+    </div>
+
+    <h3>Infinitesimal Thinking</h3>
+
+    <p>Historically, calculus was motivated by infinitesimals — quantities smaller than any measurable number yet larger than zero.</p>
+
+    <p>Modern analysis reconstructed these ideas rigorously through epsilon-delta limits.</p>
+
+    <div class="math-display">
+      For every ε > 0, there exists δ > 0 ...
+    </div>
+
+    <div class="warning">
+      <div class="label">Why Rigor Became Necessary</div>
+      <p>Early calculus was extraordinarily successful computationally, but logically unstable. Rigorous limits stabilized the entire subject in the 19th century.</p>
+    </div>
+
+  </div>
+</section>
+
+<section class="tab-panel" id="tab-space">
+  <div class="content">
+
+    <h2>Coordinate Space</h2>
+
+    <p>The fusion of algebra and geometry reached a turning point with analytic geometry.</p>
+
+    <h3>Descartes' Revolution</h3>
+
+    <p>René Descartes introduced the coordinate plane, allowing geometric shapes to be represented algebraically.</p>
+
+    <div class="math-display">
+      x² + y² = r²
+    </div>
+
+    <p>A circle was no longer merely a shape — it became an equation.</p>
+
+    <div class="insight">
+      <div class="label">Historical Transformation</div>
+      <p>Coordinate geometry unified two previously separate worlds: symbolic algebra and visual geometry. Calculus was born directly from this synthesis.</p>
+    </div>
+
+    <h3>Higher Dimensions</h3>
+
+    <p>Calculus extends naturally into multivariable spaces.</p>
+
+    <div class="math-display">
+      f(x, y, z)
+    </div>
+
+    <p>Now derivatives become gradients, tangent lines become tangent planes, and integrals become volumes and fluxes.</p>
+
+    <h3>The Jacobian Perspective</h3>
+
+    <p>Coordinate transformations distort space. Calculus tracks how tiny geometric regions stretch under these transformations.</p>
+
+    <div class="math-display">
+      dA = r dr dθ
+    </div>
+
+    <p>The Jacobian determinant measures local geometric scaling.</p>
+
+  </div>
+</section>
+
+<section class="tab-panel" id="tab-history">
+  <div class="content">
+
+    <h2>The Historical Construction of Calculus</h2>
+
+    <p>Calculus did not appear suddenly. It emerged from centuries of geometric and algebraic evolution.</p>
+
+    <div class="timeline">
+
+      <div class="timeline-item">
+        <div class="timeline-year">~250 BCE</div>
+        <h3>Archimedes</h3>
+        <p>Used geometric exhaustion methods to approximate curved areas using polygons.</p>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-year">1600s</div>
+        <h3>Descartes & Analytic Geometry</h3>
+        <p>Unified equations and geometry through coordinate systems.</p>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-year">1660s</div>
+        <h3>Newton & Leibniz</h3>
+        <p>Developed differential and integral calculus independently.</p>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-year">1800s</div>
+        <h3>Cauchy & Weierstrass</h3>
+        <p>Introduced rigorous limit definitions and modern analysis.</p>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-year">1854</div>
+        <h3>Bernhard Riemann</h3>
+        <p>Formalized integration through partition-based sums.</p>
+      </div>
+
+    </div>
+
+    <div class="note">
+      <div class="label">Final Reflection</div>
+      <p>Calculus is not merely a collection of formulas. It is the culmination of humanity's attempt to understand continuous change geometrically, algebraically, and conceptually.</p>
+    </div>
+
+  </div>
+</section>
+
+<footer class="footer">
+  Geometry gives calculus its shape. Algebra gives calculus its language. Limits give calculus its rigor.
+</footer>
+
+<script>
+const buttons = document.querySelectorAll('.tab-btn');
+const panels = document.querySelectorAll('.tab-panel');
+
+buttons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    buttons.forEach(b => b.classList.remove('active'));
+    panels.forEach(p => p.classList.remove('active'));
+
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+</script>
+
+</body>
+</html>

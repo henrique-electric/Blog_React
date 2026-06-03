@@ -1,0 +1,1704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Double Integrals — A Visual & Formal Journey</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Mono:wght@300;400;500&family=Crimson+Pro:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0c0c0e;
+    --surface: #111115;
+    --card: #16161c;
+    --border: #2a2a35;
+    --accent: #e8c96d;
+    --accent2: #7eb8f7;
+    --accent3: #f07a7a;
+    --text: #d8d4cc;
+    --muted: #6e6b62;
+    --bright: #f0ece4;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-size: 19px; /* Slightly larger for readability */
+    line-height: 1.8;
+    overflow-x: hidden;
+  }
+
+  /* ── NOISE TEXTURE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 4rem 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(232,201,109,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232,201,109,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: gridDrift 30s linear infinite;
+  }
+
+  @keyframes gridDrift {
+    from { transform: translate(0,0); }
+    to { transform: translate(60px, 60px); }
+  }
+
+  .hero-glow {
+    position: absolute;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(126,184,247,0.06) 0%, transparent 70%);
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    animation: pulse 4s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+    50% { transform: translate(-50%,-50%) scale(1.15); opacity: 0.6; }
+  }
+
+  .hero-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.25em;
+    color: var(--accent2);
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    position: relative;
+    animation: fadeSlideUp 0.8s ease both;
+  }
+
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(3rem, 7vw, 6rem);
+    font-weight: 900;
+    color: var(--bright);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    position: relative;
+    animation: fadeSlideUp 0.9s 0.1s ease both;
+  }
+
+  .hero h1 em { font-style: italic; color: var(--accent2); }
+
+  .hero-sub {
+    font-size: 1.25rem;
+    font-style: italic;
+    color: var(--muted);
+    max-width: 600px;
+    margin-top: 1.2rem;
+    position: relative;
+    animation: fadeSlideUp 0.9s 0.2s ease both;
+  }
+
+  .scroll-cue {
+    position: absolute;
+    bottom: 2.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    animation: fadeSlideUp 1s 0.5s ease both;
+  }
+
+  .scroll-line {
+    width: 1px; height: 40px;
+    background: linear-gradient(to bottom, var(--muted), transparent);
+    animation: scrollLine 2s ease-in-out infinite;
+  }
+
+  @keyframes scrollLine {
+    0%, 100% { transform: scaleY(1); opacity: 1; }
+    50% { transform: scaleY(0.3); opacity: 0.3; }
+  }
+
+  /* ── LAYOUT ── */
+  .container { max-width: 900px; margin: 0 auto; padding: 0 2rem; }
+
+  /* ── NAV DOTS ── */
+  .nav-dots {
+    position: fixed; right: 2rem; top: 50%;
+    transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 0.75rem; z-index: 100;
+  }
+  .nav-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--border); cursor: pointer;
+    transition: all 0.3s; border: 1px solid var(--muted);
+  }
+  .nav-dot.active, .nav-dot:hover {
+    background: var(--accent2); border-color: var(--accent2); transform: scale(1.5);
+  }
+
+  /* ── SECTION ── */
+  section {
+    padding: 6rem 0; position: relative; opacity: 0;
+    transform: translateY(30px); transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  section.visible { opacity: 1; transform: translateY(0); }
+
+  .section-tag {
+    font-family: 'DM Mono', monospace; font-size: 0.65rem;
+    letter-spacing: 0.3em; color: var(--accent2);
+    text-transform: uppercase; margin-bottom: 0.75rem;
+  }
+
+  h2 {
+    font-family: 'Playfair Display', serif; font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 700; color: var(--bright); line-height: 1.15; margin-bottom: 1.5rem;
+  }
+  h3 {
+    font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--bright);
+    margin: 3rem 0 1rem; font-weight: 400; font-style: italic;
+  }
+  p { margin-bottom: 1.5rem; }
+
+  .divider {
+    width: 60px; height: 2px;
+    background: linear-gradient(to right, var(--accent2), transparent);
+    margin: 1.5rem 0 2.5rem;
+  }
+
+  /* ── FORMULA BLOCK ── */
+  .formula {
+    background: var(--card); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent2); padding: 1.75rem 2rem;
+    margin: 2.5rem 0; font-family: 'DM Mono', monospace; font-size: 0.95rem;
+    color: var(--bright); border-radius: 4px; overflow-x: auto; line-height: 2.2;
+  }
+  .formula .comment { color: var(--muted); font-size: 0.85rem; }
+
+  /* ── CALLOUT ── */
+  .callout {
+    background: linear-gradient(135deg, rgba(126,184,247,0.07), rgba(126,184,247,0.02));
+    border: 1px solid rgba(126,184,247,0.2); border-radius: 6px;
+    padding: 1.75rem 2rem; margin: 2.5rem 0; font-style: italic; color: var(--accent2);
+    font-size: 1.1rem; border-left: 3px solid var(--accent2);
+  }
+
+  /* ── INTERACTIVE CANVAS VIEWPORT ── */
+  .viewport {
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    margin: 3rem 0; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+  .viewport-header {
+    padding: 0.85rem 1.5rem; background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 0.6rem;
+  }
+  .vp-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .vp-dot:nth-child(1) { background: #f07a7a; }
+  .vp-dot:nth-child(2) { background: #e8c96d; }
+  .vp-dot:nth-child(3) { background: #7eb8f7; }
+
+  .viewport-title {
+    font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted);
+    letter-spacing: 0.1em; margin-left: auto; text-transform: uppercase;
+  }
+  .viewport-body { padding: 1.5rem; }
+  canvas { display: block; border-radius: 4px; }
+
+  /* ── CONTROLS ── */
+  .controls { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1.2rem; align-items: center; }
+  .ctrl-group { display: flex; flex-direction: column; gap: 0.3rem; }
+  .ctrl-label {
+    font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 0.1em;
+    color: var(--muted); text-transform: uppercase;
+  }
+  input[type=range] {
+    -webkit-appearance: none; width: 140px; height: 3px; background: var(--border);
+    border-radius: 2px; outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent2); cursor: pointer; border: 2px solid var(--bg);
+  }
+  .val-display { font-family: 'DM Mono', monospace; font-size: 0.75rem; color: var(--accent); min-width: 3rem; }
+  .btn {
+    font-family: 'DM Mono', monospace; font-size: 0.7rem; letter-spacing: 0.1em;
+    padding: 0.5rem 1.2rem; border: 1px solid var(--accent2); background: transparent;
+    color: var(--accent2); border-radius: 3px; cursor: pointer; transition: all 0.2s; text-transform: uppercase;
+  }
+  .btn:hover { background: var(--accent2); color: var(--bg); }
+
+  /* ── DISPLAYS ── */
+  .matrix-display {
+    font-family: 'DM Mono', monospace; font-size: 0.85rem; background: var(--surface);
+    border: 1px solid var(--border); padding: 1rem 1.5rem; border-radius: 4px;
+    display: inline-block; line-height: 1.8; color: var(--bright);
+  }
+  .det-display {
+    margin-top: 1rem; font-family: 'DM Mono', monospace; font-size: 0.9rem;
+    color: var(--accent2); padding: 0.6rem 1rem; background: rgba(126,184,247,0.07);
+    border-radius: 4px; display: inline-block; border: 1px solid rgba(126,184,247,0.2);
+  }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin: 2rem 0; }
+  @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } .nav-dots { display: none; } }
+
+  .info-card { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 1.5rem; }
+  .info-card .card-title {
+    font-family: 'DM Mono', monospace; font-size: 0.75rem; letter-spacing: 0.15em;
+    color: var(--accent); text-transform: uppercase; margin-bottom: 0.75rem;
+  }
+
+  .hl { color: var(--accent2); font-style: normal; font-weight: 600; }
+  .hl2 { color: var(--accent); font-weight: 600; }
+  .hl3 { color: var(--accent3); font-weight: 600; }
+
+  .sep { width: 100%; height: 1px; background: linear-gradient(to right, transparent, var(--border), transparent); margin: 4rem 0; }
+  footer { border-top: 1px solid var(--border); padding: 3rem 2rem; text-align: center; font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted); letter-spacing: 0.1em; }
+
+  @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  .tooltip { font-family: 'DM Mono', monospace; font-size: 0.75rem; color: var(--muted); text-align: center; margin-top: 0.75rem; }
+</style>
+</head>
+<body>
+
+<nav class="nav-dots" id="navDots">
+  <div class="nav-dot active" data-section="0" title="Intro"></div>
+  <div class="nav-dot" data-section="1" title="The Formal Core"></div>
+  <div class="nav-dot" data-section="2" title="Properties"></div>
+  <div class="nav-dot" data-section="3" title="Fubini's Theorem"></div>
+  <div class="nav-dot" data-section="4" title="Non-Rectangular Regions"></div>
+  <div class="nav-dot" data-section="5" title="Polar Coordinates"></div>
+  <div class="nav-dot" data-section="6" title="The Gaussian Integral"></div>
+  <div class="nav-dot" data-section="7" title="Mechanics Applications"></div>
+  <div class="nav-dot" data-section="8" title="The Jacobian"></div>
+</nav>
+
+<section class="hero" id="s0">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+  <div style="position:relative;">
+    <div class="hero-eyebrow">Multivariable Calculus · Visual Essay</div>
+    <h1>Double<br><em>Integrals</em></h1>
+    <p class="hero-sub">From the formal limits of Riemann sums to classical mechanics—a slow-motion exploration of how we accumulate dimensions.</p>
+  </div>
+  <div class="scroll-cue">
+    <div class="scroll-line"></div>
+    <span>SCROLL</span>
+  </div>
+</section>
+
+<section id="s1">
+  <div class="container">
+    <div class="section-tag">§ 01 — The Formal Core</div>
+    <h2>The Architecture of Accumulation</h2>
+    <div class="divider"></div>
+
+    <p>To truly understand the double integral, we must not rush past its foundation. Let's slow down and look at the formal architecture. In single-variable calculus, the definite integral &int; <i>f(x) dx</i> formalizes the concept of the signed <em>area</em> under a curve over an interval [a, b]. When we ascend to multivariable calculus, a function <span class="hl">f(x, y)</span> defines a surface in 3-dimensional space. The double integral represents the <em>volume</em> between that surface and a region on the xy-plane.</p>
+
+    <p>How do we rigorously calculate this volume? We apply the fundamental strategy of analysis: we fracture a complex continuum into discrete, manageable fragments, approximate the value of each fragment, and drive the size of the fragments to zero.</p>
+
+    <h3>The Partition and the Limit</h3>
+    <p>Let <b>R</b> be a closed rectangular region defined by <i>[a, b] &times; [c, d]</i>. We create a <strong>partition</strong> &#8472; by slicing the interval <i>[a, b]</i> into <i>m</i> sub-intervals and <i>[c, d]</i> into <i>n</i> sub-intervals. This forms a grid of <i>m &times; n</i> smaller sub-rectangles, denoted as <i>R<sub>ij</sub></i>.</p>
+    
+    <p>Each sub-rectangle has an area <span class="hl">&Delta;A = &Delta;x &middot; &Delta;y</span>. We then select an arbitrary sample point <i>(x<sub>ij</sub><sup>*</sup>, y<sub>ij</sub><sup>*</sup>)</i> within each <i>R<sub>ij</sub></i>. The height of the surface at this sample point is <i>f(x<sub>ij</sub><sup>*</sup>, y<sub>ij</sub><sup>*</sup>)</i>. The product of this height and the base area gives us the volume of a single rectangular column.</p>
+
+    <div class="callout">
+      The double integral is not just a formula; it is the convergence of a sum. It guarantees that no matter how you chop up the region or which sample points you pick, as the grid becomes infinitely fine, the total volume approaches a single, incontrovertible reality.
+    </div>
+
+    <p>The total approximate volume is the double Riemann sum. We define the <strong>norm</strong> of the partition, denoted ||&#8472;||, as the length of the longest diagonal among all sub-rectangles <i>R<sub>ij</sub></i>. If the limit of this sum exists as the norm approaches zero, the function is said to be Riemann integrable over <b>R</b>.</p>
+
+    <div class="formula">
+      V &approx; &sum;<sub>i=1</sub><sup>m</sup> &sum;<sub>j=1</sub><sup>n</sup> f(x<sub>ij</sub><sup>*</sup>, y<sub>ij</sub><sup>*</sup>) &Delta;A<br><br>
+      <span class="comment">// The formal limit as the largest sub-rectangle shrinks to zero:</span><br>
+      V = lim<sub>||&#8472;|| &rarr; 0</sub> &sum; &sum; f(x<sub>ij</sub><sup>*</sup>, y<sub>ij</sub><sup>*</sup>) &Delta;A = &iint;<sub>R</sub> f(x, y) dA
+    </div>
+
+    <div class="viewport">
+      <div class="viewport-header">
+        <div class="vp-dot"></div><div class="vp-dot"></div><div class="vp-dot"></div>
+        <span class="viewport-title">INTERACTIVE · Formal Riemann Convergence</span>
+      </div>
+      <div class="viewport-body">
+        <p style="font-size:0.9rem; color:var(--muted); margin-bottom:1rem;">Adjust the partition density (N) to observe the geometric convergence. Notice how the discrete volumes map directly to the double summation notation.</p>
+        
+        <div style="display:flex; justify-content:center; margin-bottom:1rem;">
+          <canvas id="cvRiemann" width="600" height="400" style="width:100%;max-width:600px;background:var(--bg);border-radius:4px;"></canvas>
+        </div>
+        
+        <div style="display:flex; gap:1.5rem; flex-wrap:wrap; align-items:flex-start;">
+          <div class="matrix-display" id="riemannStats">
+            Subdivisions (N&times;N): <span id="nVal" class="hl">4</span> &times; <span id="nVal2" class="hl">4</span> = <span id="nTotal" class="hl">16</span> prisms<br>
+            Riemann Sum (V<sub>approx</sub>): <span id="volApprox" class="hl2">0.00</span>
+          </div>
+        </div>
+
+        <div class="controls">
+          <div class="ctrl-group">
+            <span class="ctrl-label">Grid Resolution (N)</span>
+            <div style="display:flex;gap:0.5rem;align-items:center;">
+              <input type="range" id="nSlider" min="2" max="30" step="1" value="4">
+              <span class="val-display" id="nSliderD">4</span>
+            </div>
+          </div>
+          <div class="ctrl-group">
+            <span class="ctrl-label">Camera Angle</span>
+            <div style="display:flex;gap:0.5rem;align-items:center;">
+              <input type="range" id="rotSlider" min="0" max="360" step="1" value="45">
+              <span class="val-display" id="rotSliderD">45&deg;</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="s2">
+  <div class="container">
+    <div class="section-tag">§ 02 — Axioms of Integration</div>
+    <h2>Properties of the Double Integral</h2>
+    <div class="divider"></div>
+
+    <p>Because the double integral is defined as a limit of finite sums, it inherits the algebraic properties of summation. These properties form the rigorous toolkit we use to manipulate integrals algebraically.</p>
+
+    <div class="two-col">
+      <div class="info-card">
+        <div class="card-title">1. Linearity</div>
+        <p style="font-size:0.95rem;">Constants can be factored out, and integrals distribute over addition:<br><br> <i>&iint; [a&middot;f(x,y) + b&middot;g(x,y)] dA = a &iint; f(x,y) dA + b &iint; g(x,y) dA</i></p>
+      </div>
+      <div class="info-card">
+        <div class="card-title">2. Additivity of Regions</div>
+        <p style="font-size:0.95rem;">If a region <b>R</b> is split into two non-overlapping regions <b>R<sub>1</sub></b> and <b>R<sub>2</sub></b>, the total volume is the sum of the volumes over the sub-regions:<br><br> <i>&iint;<sub>R</sub> f dA = &iint;<sub>R1</sub> f dA + &iint;<sub>R2</sub> f dA</i></p>
+      </div>
+      <div class="info-card" style="grid-column: 1 / -1;">
+        <div class="card-title">3. Monotonicity (Comparison)</div>
+        <p style="font-size:0.95rem;">If <i>f(x,y) &ge; g(x,y)</i> for all points in <b>R</b>, then the volume under <i>f</i> is strictly greater than or equal to the volume under <i>g</i>:<br> <i>&iint;<sub>R</sub> f(x,y) dA &ge; &iint;<sub>R</sub> g(x,y) dA</i>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="s3">
+  <div class="container">
+    <div class="section-tag">§ 03 — Iterated Integrals</div>
+    <h2>Fubini's Theorem &amp; Cavalieri's Principle</h2>
+    <div class="divider"></div>
+
+    <p>Evaluating a double integral strictly from the limit definition is practically impossible for most functions. We need an operational method to bridge the gap between abstract definition and algebraic calculation. This bridge is <span class="hl">Fubini's Theorem</span>.</p>
+
+    <p>Fubini's Theorem guarantees that for a continuous function on a rectangular region <i>[a, b] &times; [c, d]</i>, the double integral can be evaluated as two nested single-variable integrals. More importantly, it states that <strong>the order of integration does not matter</strong>.</p>
+
+    <div class="formula">
+      &iint;<sub>R</sub> f(x, y) dA = &int;<sub>a</sub><sup>b</sup> [ &int;<sub>c</sub><sup>d</sup> f(x, y) dy ] dx = &int;<sub>c</sub><sup>d</sup> [ &int;<sub>a</sub><sup>b</sup> f(x, y) dx ] dy
+    </div>
+
+    <h3>The Intuitive Geometry of Fubini</h3>
+    <p>Think of this process geometrically, aligning with Cavalieri's principle. If you evaluate the inner integral <span class="hl2">&int; f(x, y) dy</span>, you are holding <i>x</i> completely constant. You are projecting the 3D surface onto a 2D plane at a specific <i>x</i>-coordinate. The result of this inner integral is the <strong>cross-sectional area</strong> of the slice, which we can call <i>A(x)</i>.</p>
+
+    <p>The outer integral <span class="hl">&int; A(x) dx</span> simply accumulates these 2D areas continuously along the x-axis to output a 3D volume. You can slice the volume horizontally (integrating <i>dx</i> first) or vertically (integrating <i>dy</i> first); the total quantity remains unchanged.</p>
+
+    <p>Consider a physical loaf of bread. You can find its total volume by slicing it vertically, calculating the area of each cross-section, and summing them up from one end to the other. Alternatively, you could slice the loaf horizontally from bottom to top, finding the area of each flat layer, and summing those. Fubini's Theorem is the rigorous guarantee that the volume remains identical regardless of your slicing axis. In a strictly rectangular domain, a "change of order" simply means rotating your knife by 90 degrees.</p>
+
+    <div class="viewport">
+      <div class="viewport-header">
+        <div class="vp-dot"></div><div class="vp-dot"></div><div class="vp-dot"></div>
+        <span class="viewport-title">INTERACTIVE · Cross-Sectional Area (Fubini)</span>
+      </div>
+      <div class="viewport-body">
+        <p style="font-size:0.9rem; color:var(--muted); margin-bottom:1rem;">
+          Slide <strong>x</strong> to observe how the inner integral computes the area <i>A(x)</i> of a 2D slice. The outer integral then sums these varying areas to find the total volume.
+        </p>
+        <div class="two-col">
+          <div>
+            <canvas id="cvFubiniDomain" width="300" height="300" style="width:100%;max-width:300px;cursor:ew-resize;"></canvas>
+            <div class="tooltip">Domain [0, 4] &times; [0, 4] (Drag the x-slice)</div>
+          </div>
+          <div>
+            <canvas id="cvFubiniSlice" width="300" height="300" style="width:100%;max-width:300px;"></canvas>
+            <div class="tooltip">Inner Integral: Cross-sectional Area A(x)</div>
+          </div>
+        </div>
+        <div class="controls">
+          <div class="ctrl-group">
+            <span class="ctrl-label">Move X-Slice</span>
+            <div style="display:flex;gap:0.5rem;align-items:center;">
+              <input type="range" id="fubiniX" min="0" max="4" step="0.05" value="2">
+              <span class="val-display" id="fubiniXD">x = 2.00</span>
+            </div>
+          </div>
+        </div>
+        <div class="formula" style="margin-top:1rem; font-size:0.8rem;">
+          Inner integral at x = <span class="hl" id="fubXVal">2.00</span>:<br>
+          A(x) = &int;<sub>0</sub><sup>4</sup> (x &middot; y) dy = <span class="hl2" id="fubAVal">16.00</span> <span class="comment">// Area of the 2D slice</span><br><br>
+          Outer integral:<br>
+          V = &int;<sub>0</sub><sup>4</sup> A(x) dx = &int;<sub>0</sub><sup>4</sup> (8x) dx = <span class="hl3">64.00</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="s4">
+  <div class="container">
+    <div class="section-tag">§ 04 — Curved Boundaries</div>
+    <h2>Integrating Over General Regions</h2>
+    <div class="divider"></div>
+
+    <p>Mathematics becomes vastly more powerful when we remove constraints. What if the region of integration <b>D</b> is not a rigid rectangle, but a triangle, a circle, or a parabolic sliver? To apply Fubini's theorem here, we must define the boundaries of our region using <em>functions</em> rather than static constants.</p>
+
+    <div class="callout">
+      The most critical rule of setting up iterated integrals over general regions: <strong>The outer limits of integration must always be absolute constants.</strong> The inner limits may be variable functions. If you violate this, your final answer will contain variables instead of a numerical volume.
+    </div>
+
+    
+    <h3>The Area of Integration: The 2D Shadow</h3>
+    <p>Before evaluating any double integral, you must establish a deep intuition for the Domain of Integration. Imagine shining a bright light straight down onto your 3D surface. The silhouette it casts on the xy-plane is your domain <b>D</b>. Setting the bounds of your integral is purely a 2D geometric puzzle; it relies entirely on this shadow, not the 3D surface hovering above it.</p>
+    
+    <p>When you construct your limits, you are essentially programming the path of a 2D scanner. If you choose an order of <i>dy dx</i>, the scanner head moves vertically to draw a thin strip from the curve <i>y = bottom(x)</i> to the curve <i>y = top(x)</i>, and then sweeps that vertical strip horizontally across the absolute constants <i>x = a</i> to <i>x = b</i>.</p>
+
+    <h3>Changing the Order of Integration</h3>
+    <p>Sometimes, an integral is mathematically impossible to solve in its original order. For instance, the inner integral of <i>&iint; e<sup>x²</sup> dx dy</i> has no elementary antiderivative. But if we change the order to <i>dy dx</i>, we integrate <i>y</i> first. This often produces an extra algebraic term that suddenly makes a standard <i>u</i>-substitution possible for the outer integral. This is where changing the order becomes a computational superpower.</p>
+
+    <p>To change the order of integration over curved boundaries, you <strong>cannot</strong> simply swap the limits as you would in Fubini's rectangular setup. You must reconstruct the bounds entirely from scratch using a visual process:</p>
+    <ol style="margin-left: 2rem; margin-bottom: 2.5rem; line-height: 1.6;">
+      <li style="margin-bottom: 0.75rem;"><strong>Deconstruct the bounds:</strong> Extract the explicit inequalities for <i>x</i> and <i>y</i> from the original integral symbols.</li>
+      <li style="margin-bottom: 0.75rem;"><strong>Sketch the shadow:</strong> Graph these bounding curves on the xy-plane and pinpoint their exact intersection points. <em style="color:var(--accent3);">This visual step is strictly non-negotiable.</em></li>
+      <li style="margin-bottom: 0.75rem;"><strong>Reslice the region:</strong> If you are switching from vertical (<i>dy dx</i>) to horizontal (<i>dx dy</i>) slicing, shoot horizontal arrows through your drawn region from left to right. The curve the arrow hits first is your new lower bound <i>x = h<sub>1</sub>(y)</i>, and the curve it exits through is your new upper bound <i>x = h<sub>2</sub>(y)</i>.</li>
+      <li style="margin-bottom: 0.75rem;"><strong>Find the absolute limits:</strong> Determine the lowest and highest absolute <i>y</i> values that encompass the entire region to form your new, constant outer bounds.</li>
+    </ol>
+
+    <h3>A Slow-Motion Application: Solving the Unsolvable</h3>
+    <p>Let's deduce the solution to the integral mentioned above from scratch. We are given the following iterated integral:</p>
+    
+    <div class="formula">
+      I = &int;<sub>0</sub><sup>1</sup> [ &int;<sub>y</sub><sup>1</sup> e<sup>x²</sup> dx ] dy
+    </div>
+
+    <p>Attempting to integrate <i>e<sup>x²</sup></i> directly is a mathematical dead end; it has no elementary antiderivative. We must change the order to <i>dy dx</i>. Instead of mechanically memorizing formulas, let's intuitively rebuild the domain. First, we read the boundaries: the inner limits tell us <i>x</i> goes from the diagonal line <i>x = y</i> to the vertical line <i>x = 1</i>. The outer limits tell us this happens between the horizontal lines <i>y = 0</i> and <i>y = 1</i>.</p>
+    
+    <p>If we sketch this shadow on the xy-plane, we see a right triangle sitting on the x-axis, with vertices at (0,0), (1,0), and (1,1). Now, we erase our horizontal slicing paradigm and reslice the exact same triangle <em>vertically</em>.</p>
+    
+    <p>Drawing a vertical arrow upwards through our triangle, it enters through the x-axis (<i>y = 0</i>) and exits through the diagonal line (<i>y = x</i>). These are our new inner bounds. Finally, we look at the absolute width of the triangle: it spans from <i>x = 0</i> to <i>x = 1</i>. These are our new outer bounds. The integral transforms completely:</p>
+
+    <div class="formula">
+      I = &int;<sub>0</sub><sup>1</sup> [ &int;<sub>0</sub><sup>x</sup> e<sup>x²</sup> dy ] dx<br><br>
+      <span class="comment">// The inner integral is now trivial. The variable is y, so e<sup>x²</sup> is treated as a constant:</span><br>
+      &int;<sub>0</sub><sup>x</sup> e<sup>x²</sup> dy = [ y &middot; e<sup>x²</sup> ]<sub>0</sub><sup>x</sup> = x e<sup>x²</sup><br><br>
+      <span class="comment">// Substitute this back into the outer integral:</span><br>
+      I = &int;<sub>0</sub><sup>1</sup> x e<sup>x²</sup> dx
+    </div>
+
+    <p>By simply looking at the region from a different axis, the impossible function <i>e<sup>x²</sup></i> gained an <i>x</i> term physically attached to it. This is exactly what we need to perform standard substitution (let <i>u = x²</i>, <i>du = 2x dx</i>). The integral elegantly collapses to <i>&frac12;(e - 1)</i>.</p>
+
+    <h3>Compound Regions: Knowing When to Split</h3>
+    <p>What happens if our 2D shadow isn't a neat, uniform shape? Imagine a region bounded by <i>y = x</i>, <i>y = 2x</i>, and <i>y = 2</i>. If we attempt to slice this vertically (Type I), the "top" curve is always the horizontal line <i>y = 2</i>. But the "bottom" curve changes! For the left half of the region, the bottom boundary is <i>y = 2x</i>. For the right half, the bottom boundary abruptly shifts to <i>y = x</i>.</p>
+
+    <div class="callout">
+      A single definite integral cannot adapt to a shifting boundary. If the mathematical definition of your upper or lower limit changes midway across the region, you must stop, slice the region entirely in two at that exact intersection point, and set up two distinct double integrals that add together.
+    </div>
+
+    <p>Alternatively, if you notice a region requires splitting in the <i>dy dx</i> direction, you can often avoid the extra algebraic labor by checking the <i>dx dy</i> direction. In the example above, slicing horizontally (Type II) means the left boundary is always <i>x = y/2</i> and the right boundary is always <i>x = y</i> for the entire shape. No split required.</p>
+
+    <p>We generally classify these non-rectangular domains into two categories to simplify our algebraic setup:</p>
+
+    <div class="two-col">
+      <div class="info-card">
+        <div class="card-title">Type I Region (Vertical Strips)</div>
+        <p style="font-size:0.95rem;">The region is bounded on the left and right by constant lines <i>x = a</i> and <i>x = b</i>. The top and bottom are bounded by continuous curves <i>y = g<sub>2</sub>(x)</i> and <i>y = g<sub>1</sub>(x)</i>. <br><br>We integrate <i>y</i> first (from bottom curve to top curve), then <i>x</i> (left to right).</p>
+      </div>
+      <div class="info-card">
+        <div class="card-title">Type II Region (Horizontal Strips)</div>
+        <p style="font-size:0.95rem;">The region is bounded on the bottom and top by constant lines <i>y = c</i> and <i>y = d</i>. The left and right are bounded by curves <i>x = h<sub>1</sub>(y)</i> and <i>x = h<sub>2</sub>(y)</i>. <br><br>We integrate <i>x</i> first (from left curve to right curve), then <i>y</i> (bottom to top).</p>
+      </div>
+    </div>
+
+    <div class="viewport">
+      <div class="viewport-header">
+        <div class="vp-dot"></div><div class="vp-dot"></div><div class="vp-dot"></div>
+        <span class="viewport-title">INTERACTIVE · Type I vs Type II Paradigms</span>
+      </div>
+      <div class="viewport-body">
+        <p style="font-size:0.9rem; color:var(--muted); margin-bottom:1rem;">
+          Let <b>D</b> be the region tightly bound between <span style="color:var(--accent);">y = x²</span> and <span style="color:var(--accent2);">y = &radic;x</span>. We can describe this exact same geometric space as either a Type I or Type II region. Toggle below to watch the slicing direction shift and the mathematical bounds dynamically update.
+        </p>
+        <div class="two-col">
+          <div>
+            <canvas id="cvRegions" width="300" height="300" style="width:100%;max-width:300px;"></canvas>
+          </div>
+          <div style="display:flex; flex-direction:column; justify-content:center; gap: 1rem;">
+            
+            <div style="display:flex; gap:1rem; margin-bottom:1rem;">
+              <button class="btn" id="btnType1" style="background:var(--accent2); color:var(--bg);">Type I (dy dx)</button>
+              <button class="btn" id="btnType2">Type II (dx dy)</button>
+            </div>
+
+            <div class="formula" id="formType1" style="margin:0; font-size: 0.85rem;">
+              <strong>Type I (Vertical Slicing)</strong><br><br>
+              Outer constants:<br>
+              x &isin; [0, 1]<br><br>
+              Inner functions:<br>
+              y &isin; [<span class="hl">x²</span>, <span class="hl2">&radic;x</span>]<br><br>
+              V = &int;<sub>0</sub><sup>1</sup> [ &int;<sub>x²</sub><sup>&radic;x</sup> f(x,y) <strong>dy</strong> ] <strong>dx</strong>
+            </div>
+
+            <div class="formula" id="formType2" style="margin:0; font-size: 0.85rem; display:none;">
+              <strong>Type II (Horizontal Slicing)</strong><br><br>
+              Outer constants:<br>
+              y &isin; [0, 1]<br><br>
+              Inner functions:<br>
+              x &isin; [<span class="hl2">y²</span>, <span class="hl">&radic;y</span>]<br><br>
+              V = &int;<sub>0</sub><sup>1</sup> [ &int;<sub>y²</sub><sup>&radic;y</sup> f(x,y) <strong>dx</strong> ] <strong>dy</strong>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="s5">
+  <div class="container">
+    <div class="section-tag">§ 05 — Transforming the Grid</div>
+    <h2>Polar Coordinates &amp; The Missing 'r'</h2>
+    <div class="divider"></div>
+
+    <p>Cartesian (x, y) coordinates are mathematically native to straight lines and rectangles. But attempting to integrate over a circular domain in Cartesian coordinates forces you into a labyrinth of nested square roots, such as <i>&int; &int;<sub>-&radic;(1-x²)</sub><sup>&radic;(1-x²)</sup> f(x,y) dy dx</i>. This is algebraically hostile.</p>
+
+    <p>We can bypass this friction by changing our entire coordinate system. In <strong>Polar Coordinates</strong>, a point is defined not by its <i>(x, y)</i> position, but by its distance from the origin (<i>r</i>) and its angle from the positive x-axis (<i>&theta;</i>). Suddenly, a terrifying circular domain becomes a mathematically beautiful, perfect rectangle: <i>r &isin; [0, 1]</i> and <i>&theta; &isin; [0, 2&pi;]</i>.</p>
+
+    <h3>The Geometric Proof of dA = r dr d&theta;</h3>
+    <p>However, when we map a Cartesian grid to a polar grid, the area of our infinitesimal grid squares changes. A polar "rectangle" is actually an annular sector. It is not a perfect square, and its area grows the further out from the origin it sits.</p>
+
+    <p>Let's deduce this strictly from geometry. The area of a full circle is <i>&pi;r²</i>. The area of a sector with angle <i>&theta;</i> (in radians) is a fraction of the circle: <i>(&theta;/2&pi;) &middot; &pi;r² = &frac12;r²&theta;</i>.</p>
+    
+    <p>If we want the area of a small polar sector (an "annular wedge") with inner radius <i>r<sub>1</sub></i>, outer radius <i>r<sub>2</sub></i>, and angle width <i>&Delta;&theta;</i>, we subtract the inner sector from the outer sector:</p>
+
+    <div class="formula">
+      Area = &frac12; r<sub>2</sub>² &Delta;&theta; - &frac12; r<sub>1</sub>² &Delta;&theta;<br>
+      Area = &frac12; (r<sub>2</sub>² - r<sub>1</sub>²) &Delta;&theta;<br>
+      Area = &frac12; (r<sub>2</sub> + r<sub>1</sub>)(r<sub>2</sub> - r<sub>1</sub>) &Delta;&theta;<br><br>
+      <span class="comment">// Notice that (r<sub>2</sub> - r<sub>1</sub>) is just &Delta;r.<br>
+      // And &frac12;(r<sub>2</sub> + r<sub>1</sub>) is the average radius, let's call it r̄.</span><br><br>
+      Area = r̄ &Delta;r &Delta;&theta;
+    </div>
+
+    <p>As the grid becomes infinitesimally small (as <i>&Delta;r &rarr; 0</i>), the average radius <i>r̄</i> simply becomes the continuous variable <i>r</i>. Thus, the differential area element seamlessly becomes <span class="hl2">dA = r dr d&theta;</span>. That extra <i>r</i> is the mathematical price we pay to integrate in circular space.</p>
+
+    <div class="viewport">
+      <div class="viewport-header">
+        <div class="vp-dot"></div><div class="vp-dot"></div><div class="vp-dot"></div>
+        <span class="viewport-title">INTERACTIVE · The Polar Area Distortion</span>
+      </div>
+      <div class="viewport-body">
+        <p style="font-size:0.9rem; color:var(--muted); margin-bottom:1rem;">
+          Drag the radius slider to see the physical distortion. Notice how the area of the blue polar segment <i>&Delta;A</i> expands dramatically as <i>r</i> increases, even though the coordinate steps <i>&Delta;r</i> and <i>&Delta;&theta;</i> remain entirely constant.
+        </p>
+        <div class="two-col">
+          <div>
+            <canvas id="cvPolarIntegration" width="300" height="300" style="width:100%;max-width:300px;"></canvas>
+            <div class="tooltip">Polar Coordinate Grid</div>
+          </div>
+          <div>
+            <div class="controls" style="margin: 0 0 1rem 0;">
+              <div class="ctrl-group">
+                <span class="ctrl-label">Radius Position (r)</span>
+                <div style="display:flex;gap:0.5rem;align-items:center;">
+                  <input type="range" id="polarRIntegrate" min="0.5" max="4.0" step="0.1" value="2.0">
+                  <span class="val-display" id="polarRIntegrateD">2.0</span>
+                </div>
+              </div>
+            </div>
+            <div class="formula" style="margin-top:0; font-size:0.85rem;">
+              Base Angle: &theta; = &pi;/4<br>
+              Constant &Delta;r = 0.5 <br>
+              Constant &Delta;&theta; = &pi;/6 &approx; 0.523 rad<br><br>
+              Continuous Area Element:<br>
+              <span class="hl">dA &approx; r &middot; &Delta;r &middot; &Delta;&theta;</span><br><br>
+              Exact Geometric Area of cell:<br>
+              <span class="hl2" id="polarAreaDisplay">0.52</span> square units
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="s6">
+  <div class="container">
+    <div class="section-tag">§ 06 — A Beautiful Trick</div>
+    <h2>The Gaussian Integral</h2>
+    <div class="divider"></div>
+
+    <p>One of the most famous applications of shifting a double integral to polar coordinates involves evaluating the Gaussian integral, which is foundational to probability and quantum mechanics. The function <i>e<sup>-x²</sup></i> has no elementary antiderivative. Evaluating it directly over the entire real line is impossible using standard single-variable calculus.</p>
+
+    <div class="formula">
+      I = &int;<sub>-&infin;</sub><sup>&infin;</sup> e<sup>-x²</sup> dx = ?
+    </div>
+
+    <p>We solve this by doing something highly counterintuitive: we make the problem more complex by squaring the integral. By doing so, we cast the 1D problem into a 2D space, allowing us to leverage multivariable symmetry.</p>
+
+    <div class="formula">
+      I² = [ &int;<sub>-&infin;</sub><sup>&infin;</sup> e<sup>-x²</sup> dx ] [ &int;<sub>-&infin;</sub><sup>&infin;</sup> e<sup>-y²</sup> dy ]<br><br>
+      <span class="comment">// Combine them into a double integral over the entire xy-plane:</span><br>
+      I² = &iint;<sub>&reals;²</sub> e<sup>-(x² + y²)</sup> dx dy
+    </div>
+
+    <p>In Cartesian coordinates, this remains unsolvable. But notice the term <i>(x² + y²)</i>. That is the exact definition of <i>r²</i>. If we switch to polar coordinates, the entire infinite plane is covered by letting <i>r &isin; [0, &infin;)</i> and <i>&theta; &isin; [0, 2&pi;]</i>. And crucially, we must multiply by the polar area element <i>r</i>.</p>
+
+    <div class="formula">
+      I² = &int;<sub>0</sub><sup>2&pi;</sup> &int;<sub>0</sub><sup>&infin;</sup> e<sup>-r²</sup> <span class="hl2">r dr</span> d&theta;<br><br>
+      <span class="comment">// Now we can use u-substitution! Let u = -r², du = -2r dr</span><br>
+      I² = &int;<sub>0</sub><sup>2&pi;</sup> d&theta; &middot; [ -&frac12; e<sup>-r²</sup> ]<sub>0</sub><sup>&infin;</sup><br>
+      I² = 2&pi; &middot; ( &frac12; ) = &pi;<br><br>
+      <span class="hl">Therefore: I = &radic;&pi;</span>
+    </div>
+
+    <p>By moving to a higher dimension and changing coordinates to exploit radial symmetry, a previously unsolvable integral collapses into an elegant result.</p>
+  </div>
+</section>
+
+<section id="s7">
+  <div class="container">
+    <div class="section-tag">§ 07 — Classical Mechanics</div>
+    <h2>Mass, Moments, and Inertia</h2>
+    <div class="divider"></div>
+
+    <p>If we strip away the geometric interpretation of "volume," double integrals emerge as the core mathematical tool for describing continuous physical systems in classical mechanics. Suppose we have a flat, 2D object (a <em>lamina</em>). Instead of height, let the function <span class="hl">&rho;(x, y)</span> represent the <strong>mass density</strong> at any point (measured in kg/m²).</p>
+
+    <p>By integrating this density across the entire region <b>D</b>, we transition from intensive properties to extensive properties. We sum up the infinite number of infinitesimal masses <i>(dm = &rho; dA)</i> to find the total mass.</p>
+
+    <div class="formula">
+      Total Mass (m) = &iint;<sub>D</sub> &rho;(x, y) dA
+    </div>
+
+    <h3>The Balance Point (Center of Mass)</h3>
+    <p>Where does this lamina balance? We calculate the "first moments" by weighing the density against its lever-arm distance from the axes. The moment about the y-axis (<i>M<sub>y</sub></i>) represents the tendency of the mass to rotate around the y-axis, and relies on the distance <i>x</i>.</p>
+
+    <div class="formula">
+      M<sub>y</sub> = &iint;<sub>D</sub> x &middot; &rho;(x, y) dA &nbsp;&nbsp;&nbsp; <span class="comment">// Moment about the y-axis</span><br>
+      M<sub>x</sub> = &iint;<sub>D</sub> y &middot; &rho;(x, y) dA &nbsp;&nbsp;&nbsp; <span class="comment">// Moment about the x-axis</span><br><br>
+      Center of Mass (&xmacr;, &ymacr;) = ( M<sub>y</sub> / m , M<sub>x</sub> / m )
+    </div>
+
+    <h3>Resistance to Rotation (Moment of Inertia)</h3>
+    <p>In rotational mechanics, it is not just mass that matters, but how far that mass is distributed from the axis of rotation. The "second moment" of area, or Moment of Inertia, multiplies the density by the <em>square</em> of the distance, heavily penalizing mass that sits far from the pivot.</p>
+
+    <div class="formula">
+      I<sub>x</sub> = &iint;<sub>D</sub> y² &middot; &rho;(x, y) dA &nbsp;&nbsp;&nbsp; <span class="comment">// Rotational inertia around x-axis</span><br>
+      I<sub>0</sub> = &iint;<sub>D</sub> (x² + y²) &middot; &rho;(x, y) dA = I<sub>x</sub> + I<sub>y</sub> &nbsp;&nbsp;&nbsp; <span class="comment">// Polar moment of inertia</span>
+    </div>
+
+    <div class="viewport">
+      <div class="viewport-header">
+        <div class="vp-dot"></div><div class="vp-dot"></div><div class="vp-dot"></div>
+        <span class="viewport-title">INTERACTIVE · Density and the First Moments</span>
+      </div>
+      <div class="viewport-body">
+        <p style="font-size:0.9rem; color:var(--muted); margin-bottom:1rem;">
+          Brightness indicates the mass density &rho;(x,y). Drag the heavy "density anomaly" around the lamina. A double Riemann sum running in the background actively computes the shifting Center of Mass (the <span style="color:var(--accent);">yellow crosshair</span>) in real-time.
+        </p>
+        <div class="two-col" style="align-items: center;">
+          <div>
+            <canvas id="cvCenterMass" width="300" height="300" style="width:100%;max-width:300px;cursor:pointer;"></canvas>
+            <div class="tooltip">Drag to shift the dense region</div>
+          </div>
+          <div>
+            <div class="matrix-display" style="width: 100%;">
+              <strong>Mass &amp; Moments (Integrals)</strong><br><br>
+              Total Mass <i>m</i> = <span id="cmMass" class="hl2">--</span><br>
+              Moment M<sub>x</sub> = <span id="cmMx" class="hl3">--</span><br>
+              Moment M<sub>y</sub> = <span id="cmMy" class="hl3">--</span><br><br>
+              &xmacr; = M<sub>y</sub> / m = <span id="cmXbar" class="hl">--</span><br>
+              &ymacr; = M<sub>x</sub> / m = <span id="cmYbar" class="hl">--</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="s8">
+  <div class="container">
+    <div class="section-tag">§ 08 — The Matrix Connection</div>
+    <h2>The Jacobian and Linear Transformations</h2>
+    <div class="divider"></div>
+
+    <p>We saw earlier that switching to polar coordinates requires multiplying the integrand by <i>r</i> to correct for spatial distortion. But what if we wish to implement a generalized coordinate transformation <i>T: (u, v) &rarr; (x, y)</i> to un-skew a parallelogram or untangle a hyperbolic boundary?</p>
+
+    <p>This is where calculus deeply interfaces with linear algebra. At a microscopic level, every differentiable coordinate transformation looks like a linear map (a matrix transformation). The matrix that describes this local stretching and shearing is the <strong>Jacobian Matrix</strong>.</p>
+
+    <div class="formula">
+      J(u, v) = ⎡ &part;x/&part;u &emsp; &part;x/&part;v ⎤<br>
+      &emsp;&emsp;&emsp;&emsp;&emsp;⎣ &part;y/&part;u &emsp; &part;y/&part;v ⎦
+    </div>
+
+    <p>In linear algebra, the determinant of a 2x2 matrix represents the factor by which area scales under the transformation. Therefore, the absolute value of the Jacobian determinant, <span class="hl">|det(J)|</span>, gives us the exact scaling factor required to transform our differential area element.</p>
+
+    <h3>A Slow-Motion Deduction of the Jacobian</h3>
+    <p>Let's not just accept this linear algebra fact; let's deduce it from scratch. Why does a matrix of partial derivatives perfectly define the area of our new transformed grid?</p>
+
+    <p>Imagine a tiny, perfect rectangle in our original <i>(u, v)</i> coordinate system. Its bottom edge is a vector <b>&Delta;u</b> <i>= (&Delta;u, 0)</i> and its left edge is <b>&Delta;v</b> <i>= (0, &Delta;v)</i>. The area of this original grid square is simply <i>&Delta;u &middot; &Delta;v</i>.</p>
+
+    <p>We now push this tiny square through our transformation <i>T: (x(u,v), y(u,v))</i>. Because the square is infinitesimally small, the curved transformation acts linearly upon it. The straight horizontal edge <b>&Delta;u</b> gets warped into a new vector in the <i>(x, y)</i> plane. How much does the <i>x</i> coordinate change when we nudge <i>u</i>? That is exactly the partial derivative <i>&part;x/&part;u</i>. Therefore, our original horizontal edge becomes the vector:</p>
+
+    <div class="formula">
+      <b>r<sub>u</sub></b> &approx; ⟨ &part;x/&part;u &middot; &Delta;u , &part;y/&part;u &middot; &Delta;u ⟩
+    </div>
+
+    <p>Similarly, the vertical edge <b>&Delta;v</b> transforms into the vector:</p>
+
+    <div class="formula">
+      <b>r<sub>v</sub></b> &approx; ⟨ &part;x/&part;v &middot; &Delta;v , &part;y/&part;v &middot; &Delta;v ⟩
+    </div>
+
+    <p>Our original perfect square has been sheared and stretched into a parallelogram defined by these two new vectors. From linear algebra (and geometry), the area of a parallelogram defined by two vectors is the magnitude of their cross product. Let's compute it in 2D space by appending a virtual z-component of 0:</p>
+
+    <div class="formula">
+      Area &approx; || <b>r<sub>u</sub></b> &times; <b>r<sub>v</sub></b> ||<br>
+      Area &approx; | (&part;x/&part;u &middot; &Delta;u)(&part;y/&part;v &middot; &Delta;v) - (&part;y/&part;u &middot; &Delta;u)(&part;x/&part;v &middot; &Delta;v) |<br><br>
+      <span class="comment">// Factor out the common (&Delta;u &Delta;v) term:</span><br>
+      Area &approx; | (&part;x/&part;u)(&part;y/&part;v) - (&part;y/&part;u)(&part;x/&part;v) | &middot; &Delta;u &Delta;v
+    </div>
+
+    <p>Look closely at the expression inside the absolute value. <i>That is the exact algebraic definition of the determinant of our 2x2 Jacobian matrix!</i> As we drive the limit to zero, the approximation becomes exact: <span class="hl2">dA = |det(J)| du dv</span>. The area scaling factor is an inescapable geometric consequence of how partial derivatives bend local space.</p>
+
+    <div class="viewport">
+      <div class="viewport-header">
+        <div class="vp-dot"></div><div class="vp-dot"></div><div class="vp-dot"></div>
+        <span class="viewport-title">INTERACTIVE · The Jacobian Shear</span>
+      </div>
+      <div class="viewport-body">
+        <p style="font-size:0.9rem; color:var(--muted); margin-bottom:1rem;">
+          Adjust the partial derivatives below to alter the Jacobian matrix. Watch how the linear transformation shears the original unit square (u, v) into a parallelogram in the (x, y) space, altering its area by the exact value of the determinant.
+        </p>
+        <div class="two-col" style="align-items: center;">
+          <div>
+            <canvas id="cvJacobian" width="300" height="300" style="width:100%;max-width:300px;"></canvas>
+            <div class="tooltip">Blue: Original Grid | Gold: Transformed Area</div>
+          </div>
+          <div>
+            <div class="matrix-display" style="width:100%; margin-bottom: 1rem;">
+              <strong>Jacobian Matrix J</strong><br>
+              ⎡ <span id="j_xx" class="hl2">1.0</span> &emsp; <span id="j_xy" class="hl">0.0</span> ⎤<br>
+              ⎣ <span id="j_yx" class="hl">0.0</span> &emsp; <span id="j_yy" class="hl2">1.0</span> ⎦
+            </div>
+            
+            <div class="controls">
+              <div class="ctrl-group">
+                <span class="ctrl-label">&part;x/&part;u</span>
+                <input type="range" id="jacXX" min="-2" max="2" step="0.1" value="1">
+              </div>
+              <div class="ctrl-group">
+                <span class="ctrl-label">&part;x/&part;v</span>
+                <input type="range" id="jacXY" min="-2" max="2" step="0.1" value="0.5">
+              </div>
+              <div class="ctrl-group">
+                <span class="ctrl-label">&part;y/&part;u</span>
+                <input type="range" id="jacYX" min="-2" max="2" step="0.1" value="0">
+              </div>
+              <div class="ctrl-group">
+                <span class="ctrl-label">&part;y/&part;v</span>
+                <input type="range" id="jacYY" min="-2" max="2" step="0.1" value="1.5">
+              </div>
+            </div>
+            
+            <div class="det-display" style="width:100%; text-align:center; margin-top:1.5rem;">
+              Area Scaling Factor = |det(J)| = <span id="jacDetVal" style="font-weight:bold;">1.50</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="s9">
+  <div class="container">
+    <div class="section-tag">§ 09 — Fluid Mechanics</div>
+    <h2>Volumetric Flow Rates &amp; Flux</h2>
+    <div class="divider"></div>
+
+    <p>Let us pivot from pure mathematics into the physical reality of fluid dynamics. Instead of interpreting a 3D surface as a static geometric volume, imagine it represents a <strong>velocity profile</strong>. A fluid is flowing through a circular pipe. Due to friction against the pipe walls (the no-slip condition), the fluid travels slowest at the edges and fastest at the center, creating a parabolic velocity profile known as Poiseuille flow.</p>
+
+    <p>If we define the cross-section of the pipe as our 2D region <b>D</b>, and let the function <span class="hl">v(x, y)</span> represent the fluid's velocity vector perpendicular to that cross-section, how do we calculate the total amount of fluid passing through the pipe per second?</p>
+
+    <div class="callout">
+      When we model fluid dynamics, we assume the water is a perfectly continuous medium, allowing us to slice it into infinitesimally small <i>dA</i> patches. Is water actually a continuous mathematical surface? For this specific part, I don't know. The physical reality at the atomic scale is discrete, chaotic, and governed by quantum mechanics. Yet, classical calculus smooths over this quantum chaos to produce macroscopic predictions of astonishing accuracy.
+    </div>
+
+    <p>We slice the cross-section into infinitesimal areas <i>dA</i>. The velocity of the fluid passing through that specific tiny patch is <i>v(x, y)</i>. If we multiply the velocity by the area, we get the volumetric flow rate through that specific patch: <i>dQ = v(x, y) dA</i>. By integrating this across the entire pipe, we deduce the total volumetric flow rate, <b>Q</b>.</p>
+
+    <div class="formula">
+      Q = &iint;<sub>D</sub> v(x, y) dA
+    </div>
+
+    <p>Notice the units. If we measure velocity in centimeters per second (cm/s), and our area element <i>dA</i> is in square centimeters (cm²), the integral naturally outputs a result in cubic centimeters per second (cm³/s). From here, dimensional analysis allows us to easily convert our calculus-derived flow rate into practical engineering metrics, such as liters per second (1 L = 1000 cm³).</p>
+
+    <div class="viewport">
+      <div class="viewport-header">
+        <div class="vp-dot"></div><div class="vp-dot"></div><div class="vp-dot"></div>
+        <span class="viewport-title">INTERACTIVE · 3D Parabolic Velocity Profile</span>
+      </div>
+      <div class="viewport-body">
+        <p style="font-size:0.9rem; color:var(--muted); margin-bottom:1rem;">
+          Adjust the maximum central velocity of the fluid. The height of the blue surface represents the speed of the fluid at that point in the pipe. The double integral computes the total volume of fluid passing through the cross-section every second.
+        </p>
+        <div class="two-col" style="align-items: center;">
+          <div>
+            <canvas id="cvFluidFlow" width="300" height="300" style="width:100%;max-width:300px;background:var(--bg); border-radius:4px;"></canvas>
+          </div>
+          <div>
+            <div class="controls">
+              <div class="ctrl-group">
+                <span class="ctrl-label">Max Center Velocity (v_max)</span>
+                <input type="range" id="fluidVMax" min="1" max="10" step="0.5" value="5">
+              </div>
+            </div>
+            <div class="formula" style="font-size: 0.85rem; margin-top: 1.5rem;">
+              Pipe Radius (R) = 2.0 cm<br>
+              Velocity Field: v(r) = v<sub>max</sub> &middot; (1 - r²/R²) cm/s<br><br>
+              <span class="comment">// Integrating via polar coordinates:</span><br>
+              Q = &int;<sub>0</sub><sup>2&pi;</sup> &int;<sub>0</sub><sup>R</sup> v(r) &middot; <span class="hl2">r dr d&theta;</span><br><br>
+              Total Flow Rate (Q) = <span id="fluidQVal" class="hl3">--</span> cm³/s
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="s10">
+  <div class="container">
+    <div class="section-tag">§ 10 — Vector Calculus Prelude</div>
+    <h2>Green's Theorem: The Boundary Connection</h2>
+    <div class="divider"></div>
+
+    <p>Understanding the double integral conceptually sets the foundation for Vector Calculus. Up to this point, we have integrated scalar functions <i>f(x, y)</i>. But what happens if we integrate a vector field <b>F</b>(x,y) = ⟨ P(x,y), Q(x,y) ⟩ across an area?</p>
+
+    <p>Consider a fluid swirling on a flat surface. At every point, we can calculate its <strong>microscopic circulation</strong> (or 2D curl), which measures how much the fluid tends to rotate at that specific infinitesimal spot. The formula for this microscopic curl is <i>(&part;Q/&part;x - &part;P/&part;y)</i>.</p>
+
+    <p>If we take the double integral of this microscopic circulation over an entire region <b>D</b>, an extraordinary mathematical cancellation occurs. The internal rotations of adjacent fluid particles cancel each other out perfectly. The only rotation that does not cancel is the rotation happening right at the edge of the region.</p>
+
+    <p>This physical intuition forms the basis of <strong>Green's Theorem</strong>, which establishes a beautiful equality between a 2D double integral and a 1D line integral. It proves that the sum of all microscopic circulation inside a region is exactly equal to the macroscopic circulation of the fluid around its outer boundary curve <b>C</b>.</p>
+
+    <div class="formula">
+      <span class="comment">// Macroscopic Boundary Circulation = Microscopic Internal Circulation</span><br>
+      &oint;<sub>C</sub> (P dx + Q dy)  =  &iint;<sub>D</sub> ( &part;Q/&part;x - &part;P/&part;y ) dA
+    </div>
+
+    <p>This is a higher-dimensional equivalent to the Fundamental Theorem of Calculus. Just as <i>&int; F'(x) dx = F(b) - F(a)</i> evaluates an area by simply looking at the boundary points, Green's Theorem evaluates an entire 2D area by simply integrating along its 1D boundary.</p>
+    
+    <div class="sep"></div>
+
+    <h3>Summary: Double Integrals at a Glance</h3>
+    <div class="two-col">
+      <div class="info-card">
+        <div class="card-title">Conceptually</div>
+        <p style="font-size:0.9rem;">An infinite sum of infinitesimal columns: height <i>f(x,y)</i> times base area <i>dA</i>. It rigorously calculates signed volume under a surface through limits.</p>
+      </div>
+      <div class="info-card">
+        <div class="card-title">Fubini's Theorem</div>
+        <p style="font-size:0.9rem;">The computational engine. It treats a double integral as two nested single integrals, slicing the volume axis by axis.</p>
+      </div>
+      <div class="info-card">
+        <div class="card-title">Curved Boundaries</div>
+        <p style="font-size:0.9rem;">The outer integral strictly demands constant limits. The inner integral utilizes function limits to define the contours of the 2D domain.</p>
+      </div>
+      <div class="info-card">
+        <div class="card-title">The Jacobian Factor</div>
+        <p style="font-size:0.9rem;">When changing coordinates to simplify boundaries, we must correct for area distortion by multiplying by the absolute determinant of the Jacobian.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    Double Integrals · Visual &amp; Formal Essay · Multivariable Calculus
+  </div>
+</footer>
+
+<script>
+// ─────────────────────────────────────────────
+// UTILS
+// ─────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const TAU = Math.PI * 2;
+
+function drawArrow(ctx, x1, y1, x2, y2, color, lw = 2, hs = 10) {
+  ctx.save();
+  ctx.strokeStyle = color; 
+  ctx.fillStyle = color; 
+  ctx.lineWidth = lw;
+  ctx.beginPath(); 
+  ctx.moveTo(x1,y1); 
+  ctx.lineTo(x2,y2); 
+  ctx.stroke();
+  const a = Math.atan2(y2-y1, x2-x1);
+  ctx.beginPath();
+  ctx.moveTo(x2,y2);
+  ctx.lineTo(x2 - hs * Math.cos(a - 0.35), y2 - hs * Math.sin(a - 0.35));
+  ctx.lineTo(x2 - hs * Math.cos(a + 0.35), y2 - hs * Math.sin(a + 0.35));
+  ctx.closePath(); 
+  ctx.fill();
+  ctx.restore();
+}
+
+function clearCanvas(cv, bg = '#16161c') {
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = bg; 
+  ctx.fillRect(0, 0, cv.width, cv.height);
+}
+
+function drawGrid(cv, cx, cy, scale, col = 'rgba(255,255,255,0.07)', steps = 10) {
+  const ctx = cv.getContext('2d');
+  ctx.strokeStyle = col; 
+  ctx.lineWidth = 0.5;
+  for (let i = -steps; i <= steps; i++) {
+    ctx.beginPath(); 
+    ctx.moveTo(cx + i * scale, 0); 
+    ctx.lineTo(cx + i * scale, cv.height); 
+    ctx.stroke();
+    
+    ctx.beginPath(); 
+    ctx.moveTo(0, cy + i * scale); 
+    ctx.lineTo(cv.width, cy + i * scale); 
+    ctx.stroke();
+  }
+  // Axes
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)'; 
+  ctx.lineWidth = 1;
+  ctx.beginPath(); 
+  ctx.moveTo(cx, 0); 
+  ctx.lineTo(cx, cv.height); 
+  ctx.stroke();
+  
+  ctx.beginPath(); 
+  ctx.moveTo(0, cy); 
+  ctx.lineTo(cv.width, cy); 
+  ctx.stroke();
+}
+
+// ─────────────────────────────────────────────
+// VIEWPORT 1 — Formal Riemann Sum Engine
+// ─────────────────────────────────────────────
+(function() {
+  const cv = $('cvRiemann');
+  const ctx = cv.getContext('2d');
+  const W = cv.width;
+  const H = cv.height;
+
+  // Simple 3D projection constants
+  const cx = W / 2;
+  const cy = H / 1.5;
+  const scale = 50; 
+
+  // Function to evaluate: z = 3 - (x^2 + y^2)/4
+  function f(x, y) {
+    return Math.max(0, 3 - (x*x + y*y)/4.0);
+  }
+
+  function project(x, y, z, angleRad) {
+    // Rotate x,y around z-axis
+    const rx = x * Math.cos(angleRad) - y * Math.sin(angleRad);
+    const ry = x * Math.sin(angleRad) + y * Math.cos(angleRad);
+    
+    // Isometric projection
+    const px = cx + (rx - ry) * Math.cos(0.523) * scale;
+    const py = cy + (rx + ry) * Math.sin(0.523) * scale - z * scale;
+    return { px, py };
+  }
+
+  function drawPrism(x, y, dx, dy, z, angleRad, colorTop, colorSide, colorFront) {
+    const p1 = project(x, y, 0, angleRad);
+    const p2 = project(x + dx, y, 0, angleRad);
+    const p3 = project(x + dx, y + dy, 0, angleRad);
+    const p4 = project(x, y + dy, 0, angleRad);
+
+    const t1 = project(x, y, z, angleRad);
+    const t2 = project(x + dx, y, z, angleRad);
+    const t3 = project(x + dx, y + dy, z, angleRad);
+    const t4 = project(x, y + dy, z, angleRad);
+
+    ctx.lineWidth = 0.5;
+    ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+
+    // Front Face (depending on viewing angle, normally x+dx side)
+    ctx.fillStyle = colorFront;
+    ctx.beginPath();
+    ctx.moveTo(p2.px, p2.py);
+    ctx.lineTo(p3.px, p3.py);
+    ctx.lineTo(t3.px, t3.py);
+    ctx.lineTo(t2.px, t2.py);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+
+    // Side Face (y+dy side)
+    ctx.fillStyle = colorSide;
+    ctx.beginPath();
+    ctx.moveTo(p3.px, p3.py);
+    ctx.lineTo(p4.px, p4.py);
+    ctx.lineTo(t4.px, t4.py);
+    ctx.lineTo(t3.px, t3.py);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+
+    // Top Face
+    ctx.fillStyle = colorTop;
+    ctx.beginPath();
+    ctx.moveTo(t1.px, t1.py);
+    ctx.lineTo(t2.px, t2.py);
+    ctx.lineTo(t3.px, t3.py);
+    ctx.lineTo(t4.px, t4.py);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+  }
+
+  function render() {
+    clearCanvas(cv, '#16161c');
+    const N = parseInt($('nSlider').value);
+    const angle = parseInt($('rotSlider').value) * Math.PI / 180;
+    
+    const domainSize = 4.0; // from -2 to 2
+    const start = -2.0;
+    const step = domainSize / N;
+    
+    let approxVol = 0;
+
+    // Collect prisms to sort by depth (painters algorithm)
+    const prisms = [];
+
+    for(let i=0; i<N; i++) {
+      for(let j=0; j<N; j++) {
+        const x = start + i*step;
+        const y = start + j*step;
+        
+        // Sample point (midpoint rule)
+        const midX = x + step/2;
+        const midY = y + step/2;
+        const z = f(midX, midY);
+        
+        approxVol += z * (step * step);
+
+        // Center of the prism for depth sorting
+        const cx3 = x + step/2;
+        const cy3 = y + step/2;
+        
+        // Depth logic for painter algorithm based on rotation
+        const rx = cx3 * Math.cos(angle) - cy3 * Math.sin(angle);
+        const ry = cx3 * Math.sin(angle) + cy3 * Math.cos(angle);
+        const depth = rx + ry; 
+
+        prisms.push({ x, y, z, dx: step, dy: step, depth });
+      }
+    }
+
+    // Sort prisms back to front
+    prisms.sort((a, b) => b.depth - a.depth);
+
+    // Render them
+    for (const p of prisms) {
+      if (p.z > 0.05) {
+        // Color mapping based on height
+        const intensity = p.z / 3.0; // 0 to 1
+        const top = `rgba(126,184,247, ${0.4 + intensity * 0.5})`;
+        const side = `rgba(90,140,200, ${0.3 + intensity * 0.4})`;
+        const front = `rgba(60,100,160, ${0.2 + intensity * 0.4})`;
+
+        drawPrism(p.x, p.y, p.dx, p.dy, p.z, angle, top, side, front);
+      }
+    }
+
+    // Update UI
+    $('nSliderD').textContent = N;
+    $('rotSliderD').textContent = parseInt($('rotSlider').value) + '°';
+    $('nVal').textContent = N;
+    $('nVal2').textContent = N;
+    $('nTotal').textContent = N*N;
+    $('volApprox').textContent = approxVol.toFixed(3);
+  }
+
+  $('nSlider').addEventListener('input', render);
+  $('rotSlider').addEventListener('input', render);
+  
+  render();
+})();
+
+// ─────────────────────────────────────────────
+// VIEWPORT 2 — Fubini's Theorem (Slicing)
+// ─────────────────────────────────────────────
+(function() {
+  const cvDom = $('cvFubiniDomain');
+  const cvSli = $('cvFubiniSlice');
+  const SZ = 300;
+
+  function render() {
+    const xVal = parseFloat($('fubiniX').value);
+    
+    // Domain Render
+    clearCanvas(cvDom);
+    const ctx1 = cvDom.getContext('2d');
+    // Map domain [0, 4]x[0, 4] to canvas [20, 280]
+    const map = v => 20 + (v/4.0)*260;
+    
+    // Draw the function density as background (x*y)
+    for(let i=0; i<4; i+=0.1) {
+      for(let j=0; j<4; j+=0.1) {
+        const val = (i*j) / 16.0; // Normalize 0..1
+        ctx1.fillStyle = `rgba(126,184,247, ${val*0.6})`;
+        ctx1.fillRect(map(i), map(4-j)-260/40, 260/40 + 1, 260/40 + 1);
+      }
+    }
+
+    drawGrid(cvDom, 20, 280, 65, 'rgba(255,255,255,0.1)', 5);
+    
+    // Draw slice line
+    const px = map(xVal);
+    ctx1.strokeStyle = '#e8c96d';
+    ctx1.lineWidth = 2;
+    ctx1.setLineDash([5, 3]);
+    ctx1.beginPath();
+    ctx1.moveTo(px, 20);
+    ctx1.lineTo(px, 280);
+    ctx1.stroke();
+    ctx1.setLineDash([]);
+    
+    // Label
+    ctx1.fillStyle = '#e8c96d';
+    ctx1.font = '12px DM Mono,monospace';
+    ctx1.fillText('x = ' + xVal.toFixed(1), px + 5, 35);
+
+    // Slice Render
+    clearCanvas(cvSli);
+    const ctx2 = cvSli.getContext('2d');
+    
+    drawGrid(cvSli, 20, 280, 65, 'rgba(255,255,255,0.1)', 5);
+    
+    // The slice curve is f(y) = xVal * y, for y in [0, 4]
+    ctx2.beginPath();
+    ctx2.moveTo(20, 280); // Start at y=0, z=0
+    
+    const slicePts = [];
+    for(let y=0; y<=4; y+=0.1) {
+        const z = xVal * y;
+        // Map y to horizontal, z to vertical
+        const sy = 20 + (y/4.0)*260;
+        const sz = 280 - (z/16.0)*260; // Max z is 16
+        ctx2.lineTo(sy, sz);
+        slicePts.push({sy, sz});
+    }
+    
+    // Fill region
+    ctx2.lineTo(280, 280);
+    ctx2.closePath();
+    ctx2.fillStyle = 'rgba(232,201,109,0.2)';
+    ctx2.fill();
+    
+    // Outline
+    ctx2.strokeStyle = '#e8c96d';
+    ctx2.lineWidth = 2;
+    ctx2.beginPath();
+    for(let i=0; i<slicePts.length; i++) {
+        if(i===0) ctx2.moveTo(slicePts[i].sy, slicePts[i].sz);
+        else ctx2.lineTo(slicePts[i].sy, slicePts[i].sz);
+    }
+    ctx2.stroke();
+
+    // Labels
+    ctx2.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx2.fillText('y axis &rarr;', 220, 270);
+    ctx2.fillText('z (height)', 25, 30);
+
+    // UI Updates
+    const crossArea = (xVal * 4.0 * 4.0) / 2.0; // Integral of xy dy = x*(16/2) = 8x
+    $('fubiniXD').textContent = 'x = ' + xVal.toFixed(2);
+    $('fubXVal').textContent = xVal.toFixed(2);
+    $('fubAVal').textContent = crossArea.toFixed(2);
+  }
+
+  $('fubiniX').addEventListener('input', render);
+  
+  // Dragging on Domain Canvas
+  let isDragging = false;
+  cvDom.addEventListener('mousedown', () => isDragging = true);
+  window.addEventListener('mouseup', () => isDragging = false);
+  cvDom.addEventListener('mousemove', (e) => {
+      if(!isDragging) return;
+      const rect = cvDom.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      let newX = ((mx - 20) / 260) * 4.0;
+      newX = Math.max(0, Math.min(4, newX));
+      $('fubiniX').value = newX;
+      render();
+  });
+
+  render();
+})();
+
+// ─────────────────────────────────────────────
+// VIEWPORT 3 — Type I vs Type II
+// ─────────────────────────────────────────────
+(function() {
+  const cv = $('cvRegions');
+  const SZ = 300;
+  let typeI = true;
+  let animProgress = 0;
+  
+  function render() {
+    clearCanvas(cv);
+    const ctx = cv.getContext('2d');
+    
+    // Map [0, 1.2] x [0, 1.2]
+    const cx = 30;
+    const cy = 270;
+    const scale = 200; // 1 unit = 200px
+    
+    drawGrid(cv, cx, cy, scale/5, 'rgba(255,255,255,0.05)', 6);
+    
+    // Draw region bounded by y = x^2 and y = sqrt(x)
+    ctx.beginPath();
+    for(let x=0; x<=1; x+=0.02) {
+      const y = x*x;
+      ctx.lineTo(cx + x*scale, cy - y*scale);
+    }
+    for(let x=1; x>=0; x-=0.02) {
+      const y = Math.sqrt(x);
+      ctx.lineTo(cx + x*scale, cy - y*scale);
+    }
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(126,184,247, 0.15)';
+    ctx.fill();
+
+    // Bounds explicitly
+    ctx.beginPath(); // y = x^2
+    for(let x=0; x<=1.1; x+=0.05) ctx.lineTo(cx + x*scale, cy - (x*x)*scale);
+    ctx.strokeStyle = '#e8c96d'; ctx.lineWidth = 2; ctx.stroke();
+    
+    ctx.beginPath(); // y = sqrt(x)
+    for(let x=0; x<=1.1; x+=0.05) ctx.lineTo(cx + x*scale, cy - Math.sqrt(x)*scale);
+    ctx.strokeStyle = '#7eb8f7'; ctx.lineWidth = 2; ctx.stroke();
+    
+    // Animation sweep
+    animProgress = (animProgress + 0.005) % 1;
+    
+    if (typeI) {
+      // Sweep vertical line across x axis
+      const curX = animProgress;
+      const yBottom = curX * curX;
+      const yTop = Math.sqrt(curX);
+      
+      const px = cx + curX*scale;
+      drawArrow(ctx, px, cy - yBottom*scale, px, cy - yTop*scale, '#f07a7a', 3, 8);
+      
+      ctx.fillStyle = 'rgba(240,122,122, 0.3)';
+      ctx.beginPath();
+      for(let x=0; x<=curX; x+=0.02) ctx.lineTo(cx + x*scale, cy - (x*x)*scale);
+      for(let x=curX; x>=0; x-=0.02) ctx.lineTo(cx + x*scale, cy - Math.sqrt(x)*scale);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      // Sweep horizontal line up y axis
+      const curY = animProgress;
+      const xLeft = curY * curY; // from y = sqrt(x) -> x = y^2
+      const xRight = Math.sqrt(curY); // from y = x^2 -> x = sqrt(y)
+      
+      const py = cy - curY*scale;
+      drawArrow(ctx, cx + xLeft*scale, py, cx + xRight*scale, py, '#f07a7a', 3, 8);
+      
+      ctx.fillStyle = 'rgba(240,122,122, 0.3)';
+      ctx.beginPath();
+      for(let y=0; y<=curY; y+=0.02) ctx.lineTo(cx + (y*y)*scale, cy - y*scale);
+      for(let y=curY; y>=0; y-=0.02) ctx.lineTo(cx + Math.sqrt(y)*scale, cy - y*scale);
+      ctx.closePath();
+      ctx.fill();
+    }
+    
+    requestAnimationFrame(render);
+  }
+
+  $('btnType1').addEventListener('click', () => {
+    typeI = true;
+    $('btnType1').style.background = 'var(--accent2)';
+    $('btnType1').style.color = 'var(--bg)';
+    $('btnType2').style.background = 'transparent';
+    $('btnType2').style.color = 'var(--accent2)';
+    $('formType1').style.display = 'block';
+    $('formType2').style.display = 'none';
+    animProgress = 0;
+  });
+
+  $('btnType2').addEventListener('click', () => {
+    typeI = false;
+    $('btnType2').style.background = 'var(--accent2)';
+    $('btnType2').style.color = 'var(--bg)';
+    $('btnType1').style.background = 'transparent';
+    $('btnType1').style.color = 'var(--accent2)';
+    $('formType2').style.display = 'block';
+    $('formType1').style.display = 'none';
+    animProgress = 0;
+  });
+
+  requestAnimationFrame(render);
+})();
+
+// ─────────────────────────────────────────────
+// VIEWPORT 4 — Polar Integrals (Area Element)
+// ─────────────────────────────────────────────
+(function() {
+  const cv = $('cvPolarIntegration');
+  const SZ = 300;
+  const cx = SZ / 2;
+  const cy = SZ / 2;
+  const baseScale = 30; // pixels per unit
+
+  function render() {
+    clearCanvas(cv);
+    const ctx = cv.getContext('2d');
+    
+    // Polar Grid Background
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    // Circles
+    for(let r=1; r<=4; r++) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, r*baseScale, 0, TAU);
+      ctx.stroke();
+    }
+    // Lines
+    for(let a=0; a<12; a++) {
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(a*TAU/12)*120, cy + Math.sin(a*TAU/12)*120);
+      ctx.stroke();
+    }
+
+    const r = parseFloat($('polarRIntegrate').value);
+    const dr = 0.5;
+    const theta = Math.PI / 4; // 45 degrees
+    const dtheta = Math.PI / 6; // 30 degrees increment
+    
+    // Draw the "Polar Rectangle" highlighted
+    ctx.beginPath();
+    ctx.arc(cx, cy, r*baseScale, theta, theta + dtheta, false);
+    ctx.arc(cx, cy, (r+dr)*baseScale, theta + dtheta, theta, true);
+    ctx.closePath();
+    
+    ctx.fillStyle = 'rgba(126,184,247,0.4)';
+    ctx.fill();
+    ctx.strokeStyle = '#7eb8f7';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Annotations for r and dr
+    ctx.fillStyle = '#e8c96d';
+    ctx.font = '12px DM Mono';
+    ctx.fillText('r = ' + r.toFixed(1), cx + 10, cy + 15);
+
+    // Exact Geometric Area = 0.5 * dtheta * ((r+dr)^2 - r^2)
+    const exactArea = 0.5 * dtheta * (Math.pow(r+dr, 2) - Math.pow(r, 2));
+    
+    $('polarRIntegrateD').textContent = r.toFixed(1);
+    $('polarAreaDisplay').textContent = exactArea.toFixed(3);
+  }
+
+  $('polarRIntegrate').addEventListener('input', render);
+  render();
+})();
+
+// ─────────────────────────────────────────────
+// VIEWPORT 5 — Center of Mass (Density Integral)
+// ─────────────────────────────────────────────
+(function() {
+  const cv = $('cvCenterMass');
+  const SZ = 300;
+  let heavyX = 2.0; // in coords [0, 4]
+  let heavyY = 2.0;
+  let isDragging = false;
+
+  function density(x, y) {
+    // Base density + heavy gaussian anomaly
+    const distSq = (x - heavyX)**2 + (y - heavyY)**2;
+    return 1.0 + 5.0 * Math.exp(-distSq * 1.5);
+  }
+
+  function render() {
+    clearCanvas(cv);
+    const ctx = cv.getContext('2d');
+    
+    const pad = 25;
+    const size = 250;
+    const mapToCanvas = v => pad + (v/4.0)*size;
+    
+    // Draw Heatmap
+    const stepCanvas = 5;
+    for(let i=0; i<size; i+=stepCanvas) {
+      for(let j=0; j<size; j+=stepCanvas) {
+        const x = (i/size)*4.0;
+        const y = 4.0 - (j/size)*4.0; // invert Y for math
+        const d = density(x, y);
+        
+        // Map density to color (1 to 6)
+        const intensity = (d - 1.0) / 5.0; // 0 to 1
+        const rC = Math.floor(40 + intensity*200);
+        const gC = Math.floor(40 + intensity*100);
+        const bC = Math.floor(60 + intensity*60);
+        
+        ctx.fillStyle = `rgb(${rC}, ${gC}, ${bC})`;
+        ctx.fillRect(pad + i, pad + j, stepCanvas, stepCanvas);
+      }
+    }
+    
+    // Border
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(pad, pad, size, size);
+
+    // Compute Integrals using double Riemann sum
+    const N = 40;
+    const step = 4.0 / N;
+    let totalMass = 0;
+    let momX = 0; 
+    let momY = 0; 
+
+    for(let i=0; i<N; i++) {
+      for(let j=0; j<N; j++) {
+        const x = (i + 0.5) * step;
+        const y = (j + 0.5) * step;
+        const rho = density(x, y);
+        const dA = step * step;
+        
+        totalMass += rho * dA;
+        momX += y * rho * dA;
+        momY += x * rho * dA;
+      }
+    }
+
+    const xBar = momY / totalMass;
+    const yBar = momX / totalMass;
+
+    // Draw Anomaly Center Marker
+    const pxHeavy = mapToCanvas(heavyX);
+    const pyHeavy = mapToCanvas(4.0 - heavyY);
+    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+    ctx.beginPath();
+    ctx.arc(pxHeavy, pyHeavy, 8, 0, TAU);
+    ctx.stroke();
+
+    // Draw Center of Mass (Balance Point)
+    const pxCM = mapToCanvas(xBar);
+    const pyCM = mapToCanvas(4.0 - yBar);
+    
+    ctx.strokeStyle = '#e8c96d';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(pxCM - 10, pyCM); ctx.lineTo(pxCM + 10, pyCM);
+    ctx.moveTo(pxCM, pyCM - 10); ctx.lineTo(pxCM, pyCM + 10);
+    ctx.stroke();
+    
+    // UI Update
+    $('cmMass').textContent = totalMass.toFixed(2);
+    $('cmMx').textContent = momX.toFixed(2);
+    $('cmMy').textContent = momY.toFixed(2);
+    $('cmXbar').textContent = xBar.toFixed(3);
+    $('cmYbar').textContent = yBar.toFixed(3);
+  }
+
+  cv.addEventListener('mousedown', (e) => { isDragging = true; updateAnomaly(e); });
+  window.addEventListener('mouseup', () => isDragging = false);
+  cv.addEventListener('mousemove', (e) => { if(isDragging) updateAnomaly(e); });
+  cv.addEventListener('touchstart', (e) => { isDragging = true; updateAnomaly(e.touches[0]); e.preventDefault(); });
+  cv.addEventListener('touchmove', (e) => { if(isDragging) updateAnomaly(e.touches[0]); e.preventDefault(); });
+
+  function updateAnomaly(e) {
+    const rect = cv.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    
+    // map back to [0, 4]
+    let nx = ((mx - 25) / 250) * 4.0;
+    let ny = 4.0 - ((my - 25) / 250) * 4.0;
+    
+    heavyX = Math.max(0, Math.min(4, nx));
+    heavyY = Math.max(0, Math.min(4, ny));
+    render();
+  }
+
+  render();
+})();
+
+// ─────────────────────────────────────────────
+// SCROLL REVEAL + NAV DOTS
+// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// VIEWPORT 6 — Jacobian Shear Interaction
+// ─────────────────────────────────────────────
+(function(){
+  const cv = $('cvJacobian');
+  if(!cv) return;
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height; const CX = W/2, CY = H/2;
+
+  function renderJac() {
+    clearCanvas(cv, '#16161c');
+    drawGrid(cv, CX, CY, 20, 'rgba(255,255,255,0.06)', 6);
+
+    const a = parseFloat($('jacXX').value);
+    const b = parseFloat($('jacXY').value);
+    const c = parseFloat($('jacYX').value);
+    const d = parseFloat($('jacYY').value);
+
+    $('j_xx').textContent = a.toFixed(2);
+    $('j_xy').textContent = b.toFixed(2);
+    $('j_yx').textContent = c.toFixed(2);
+    $('j_yy').textContent = d.toFixed(2);
+
+    // Draw original unit square and transformed parallelogram
+    const scale = 40;
+    const pts = [ [0,0],[1,0],[1,1],[0,1] ];
+
+    // Original (blue)
+    ctx.strokeStyle = 'rgba(126,184,247,0.9)'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    pts.forEach((p,i)=>{ const x = CX + (p[0]-0.5)*scale*2, y = CY + (p[1]-0.5)*scale*2; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); });
+    ctx.closePath(); ctx.stroke();
+
+    // Transformed (gold)
+    const trans = pts.map(p=>{
+      const x = a*p[0] + b*p[1];
+      const y = c*p[0] + d*p[1];
+      return [CX + (x-0.5)*scale*2, CY + (y-0.5)*scale*2];
+    });
+
+    ctx.fillStyle = 'rgba(232,201,109,0.18)'; ctx.strokeStyle = 'rgba(232,201,109,0.95)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); trans.forEach((p,i)=>{ if(i===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); }); ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    // Draw basis vectors
+    drawArrow(ctx, CX, CY, trans[1][0], trans[1][1], '#e8c96d', 3);
+    drawArrow(ctx, CX, CY, trans[3][0], trans[3][1], '#d4a21a', 3);
+
+    const det = a*d - b*c;
+    $('jacDetVal').textContent = Math.abs(det).toFixed(3);
+  }
+
+  ['jacXX','jacXY','jacYX','jacYY'].forEach(id=>{ const el = $(id); if(el) el.addEventListener('input', renderJac); });
+  renderJac();
+})();
+
+// ─────────────────────────────────────────────
+// VIEWPORT 7 — 3D Parabolic Velocity Profile
+// ─────────────────────────────────────────────
+(function(){
+  const cv = $('cvFluidFlow');
+  if(!cv) return;
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height; const CX = W/2, CY = H/2;
+
+  function computeQ(vMax) {
+    const R = 2.0;
+    // polar integration discretized
+    const N = 120;
+    let sum = 0;
+    for(let i=0;i<N;i++){
+      const r = (i + 0.5) * R / N;
+      const v = vMax * (1 - (r*r)/(R*R));
+      const dA = (2*Math.PI/N) * r * (R/N) * 1; // approximate ring area
+      sum += v * (r * (2*Math.PI/N)) * (R/N) * 1; // simplified; we'll use simpler numeric
+      // Simpler: use radius ring area = 2*pi*r*(R/N)
+      sum = 0; // switch to cleaner quadrature below
+    }
+    // cleaner numeric integration: integrate theta analytically, integrate r numerically
+    let integral = 0;
+    const M = 400;
+    for(let j=0;j<M;j++){
+      const r = (j + 0.5) * R / M;
+      const v = vMax * (1 - (r*r)/(R*R));
+      integral += v * (2*Math.PI * r) * (R / M);
+    }
+    return integral; // cm^3 / s
+  }
+
+  function renderFluid() {
+    clearCanvas(cv, '#0f1720');
+
+    const vMax = parseFloat($('fluidVMax').value);
+    const Q = computeQ(vMax);
+    $('fluidQVal').textContent = Q.toFixed(2);
+
+    // Draw simple radial gradient to show velocity magnitude
+    const Rvis = Math.min(W, H) * 0.4;
+    const g = ctx.createRadialGradient(CX, CY, 4, CX, CY, Rvis);
+    g.addColorStop(0, 'rgba(126,184,247,0.95)');
+    g.addColorStop(1, 'rgba(10,20,40,0.2)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(CX, CY, Rvis, 0, TAU); ctx.fill();
+
+    // Draw rings to indicate velocity contours
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+    for(let i=1;i<=6;i++){
+      ctx.beginPath(); ctx.arc(CX, CY, (i/6)*Rvis, 0, TAU); ctx.stroke();
+    }
+  }
+
+  const el = $('fluidVMax'); if(el) el.addEventListener('input', renderFluid);
+  renderFluid();
+})();
+
+const sections = Array.from(document.querySelectorAll('section'));
+const navDots = Array.from(document.querySelectorAll('.nav-dot'));
+
+const observer = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.classList.add('visible');
+      const idx = sections.indexOf(e.target);
+      if(idx >= 0 && idx < navDots.length) {
+        navDots.forEach((d,i)=>d.classList.toggle('active',i===idx));
+      }
+    }
+  });
+},{threshold:0.15});
+
+sections.forEach(s=>observer.observe(s));
+
+navDots.forEach((dot,i)=>{
+  dot.addEventListener('click',()=>{
+    sections[i].scrollIntoView({behavior:'smooth'});
+  });
+});
+
+sections[0].classList.add('visible');
+</script>
+</body>
+</html>

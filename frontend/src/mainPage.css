@@ -1,0 +1,15 @@
+.mainContent {
+    margin-top: 2rem;
+    display: flex;
+    flex-flow: column wrap;
+    align-self: center;
+    text-align: justify;
+}
+
+.mainPage {
+    display: flex;
+    justify-self: center;
+    padding: 5rem;
+    margin-top: 2rem;
+    padding-top: 0px;
+}

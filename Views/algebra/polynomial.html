@@ -1,0 +1,2160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Polynomials & Abstract Algebra — Deep Dive</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script>
+  MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']]
+    }
+  };
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<style>
+/* ═════════════ CSS VARIABLES & THEMING ═════════════ */
+:root {
+  --bg:           #f4f6f8;
+  --bg2:          #e6eaef;
+  --bg-card:      #ffffff;
+  --ink:          #111827;
+  --ink2:         #374151;
+  --ink3:         #6b7280;
+  --rule:         #d1d5db;
+  --primary:      #4f46e5;
+  --primary-lt:   #818cf8;
+  --secondary:    #db2777;
+  --secondary-lt: #f472b6;
+  --accent:       #059669;
+  --accent-lt:    #34d399;
+  --warning:      #d97706;
+  --canvas-bg:    #ffffff;
+  --grid-line:    #e5e7eb;
+  --ax-line:      #9ca3af;
+  --ax-text:      #6b7280;
+  --curve-main:   #4f46e5;
+  --curve-deriv:  #db2777;
+}
+
+[data-theme="dark"] {
+  --bg:           #111827;
+  --bg2:          #1f2937;
+  --bg-card:      #1e293b;
+  --ink:          #f9fafb;
+  --ink2:         #e5e7eb;
+  --ink3:         #9ca3af;
+  --rule:         #374151;
+  --primary:      #818cf8;
+  --primary-lt:   #6366f1;
+  --secondary:    #f472b6;
+  --secondary-lt: #ec4899;
+  --accent:       #34d399;
+  --accent-lt:    #10b981;
+  --warning:      #fbbf24;
+  --canvas-bg:    #0f172a;
+  --grid-line:    #334155;
+  --ax-line:      #64748b;
+  --ax-text:      #94a3b8;
+  --curve-main:   #818cf8;
+  --curve-deriv:  #f472b6;
+}
+
+/* ═════════════ RESET & BASE ═════════════ */
+*, *::before, *::after { 
+  box-sizing: border-box; 
+  margin: 0; 
+  padding: 0; 
+}
+
+html { 
+  scroll-behavior: smooth; 
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Lora', Georgia, serif;
+  font-size: 16px;
+  line-height: 1.8;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* ═════════════ HEADER ═════════════ */
+.site-header {
+  border-bottom: 2px solid var(--ink);
+  padding: 3rem 2.5rem 2.5rem;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap;
+  background: var(--bg-card);
+}
+
+.site-header .title-block h1 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(2.8rem, 6vw, 4.5rem);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.site-header .title-block h1 em {
+  font-style: italic;
+  color: var(--primary);
+}
+
+.site-header .title-block .subtitle {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--ink3);
+  margin-top: 0.75rem;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.header-formula {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 1.6rem;
+  color: var(--ink2);
+  white-space: nowrap;
+  border-left: 3px solid var(--primary);
+  padding-left: 1rem;
+}
+
+/* ═════════════ NAVIGATION ═════════════ */
+.tab-nav {
+  display: flex;
+  border-bottom: 1px solid var(--rule);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tab-nav::-webkit-scrollbar { display: none; }
+
+.tab-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink3);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.2s, border-color 0.2s;
+  flex-shrink: 0;
+}
+.tab-btn:hover { color: var(--ink); }
+.tab-btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; animation: fadeIn 0.4s ease-in-out; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ═════════════ TYPOGRAPHY & BOXES ═════════════ */
+.content-body {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 3.5rem 2rem 5rem;
+}
+
+.content-body h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2.4rem;
+  font-weight: 400;
+  color: var(--ink);
+  margin: 3rem 0 1.2rem;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 0.5rem;
+}
+.content-body h2:first-child { margin-top: 0; }
+
+.content-body h3 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.5rem;
+  font-style: italic;
+  font-weight: 500;
+  color: var(--primary);
+  margin: 2rem 0 0.8rem;
+}
+
+.content-body p {
+  color: var(--ink2);
+  margin-bottom: 1.2rem;
+}
+
+.content-body ul, .content-body ol {
+  color: var(--ink2);
+  margin: 1.2rem 0 1.2rem 2rem;
+}
+
+.content-body li {
+  margin-bottom: 0.5rem;
+}
+
+/* Info Boxes */
+.definition-box {
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--primary);
+  padding: 1.5rem 1.8rem;
+  margin: 2rem 0;
+  border-radius: 0 4px 4px 0;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+}
+.definition-box .def-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--primary);
+  margin-bottom: 0.8rem;
+}
+
+.theorem-box {
+  background: rgba(5, 150, 105, 0.05);
+  border: 1px solid rgba(5, 150, 105, 0.2);
+  border-left: 4px solid var(--accent);
+  padding: 1.5rem 1.8rem;
+  margin: 2rem 0;
+  border-radius: 0 4px 4px 0;
+}
+.theorem-box .theo-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  margin-bottom: 0.8rem;
+}
+
+.warning-box {
+  background: rgba(217, 119, 6, 0.05);
+  border: 1px solid rgba(217, 119, 6, 0.2);
+  border-left: 4px solid var(--warning);
+  padding: 1.5rem 1.8rem;
+  margin: 2rem 0;
+  border-radius: 0 4px 4px 0;
+}
+.warning-box .warn-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--warning);
+  margin-bottom: 0.8rem;
+}
+
+/* Math Display */
+.math-display {
+  text-align: center;
+  overflow-x: auto;
+  padding: 1.5rem 1rem;
+  background: var(--bg2);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  margin: 1.5rem 0;
+  color: var(--ink);
+}
+
+/* ═════════════ INTERACTIVE LAYOUT ═════════════ */
+.interactive-layout {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 0;
+  min-height: 700px;
+  border-bottom: 1px solid var(--rule);
+}
+@media (max-width: 900px) {
+  .interactive-layout { grid-template-columns: 1fr; }
+}
+
+.viz-pane {
+  border-right: 1px solid var(--rule);
+  padding: 2rem;
+  background: var(--bg);
+}
+
+.canvas-container {
+  position: relative;
+  background: var(--canvas-bg);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+}
+canvas { display: block; width: 100%; height: auto; cursor: crosshair; }
+
+.ctrl-pane {
+  padding: 2rem;
+  background: var(--bg-card);
+  display: flex;
+  flex-direction: column;
+  gap: 1.8rem;
+  overflow-y: auto;
+}
+
+.ctrl-section .ctrl-head {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink3);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* Controls */
+.btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.grp-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  padding: 0.5rem 0.8rem;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  color: var(--ink2);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.grp-btn:hover { border-color: var(--primary-lt); color: var(--primary-lt); }
+.grp-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+/* Sliders */
+.slider-block { margin-bottom: 1.2rem; }
+.slider-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--ink2);
+  margin-bottom: 0.5rem;
+}
+.slider-label .sval {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--primary);
+  font-weight: bold;
+}
+input[type=range] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 4px;
+  background: var(--rule);
+  border-radius: 2px;
+  outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  border: 2px solid var(--bg-card);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+/* ═════════════ TABLES & GRIDS ═════════════ */
+.algebra-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 2rem 0;
+  font-size: 0.95rem;
+  background: var(--bg-card);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.algebra-table th {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink3);
+  padding: 1rem;
+  border-bottom: 2px solid var(--rule);
+  text-align: left;
+  background: var(--bg2);
+}
+.algebra-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink2);
+  vertical-align: middle;
+}
+
+/* ═════════════ GLOSSARY ═════════════ */
+.gloss-item {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  gap: 1.5rem;
+  padding: 1.5rem 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: start;
+}
+.gloss-item:last-child { border-bottom: none; }
+.gloss-term {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 1.4rem;
+  color: var(--primary);
+  font-weight: 500;
+}
+.gloss-def { color: var(--ink2); font-size: 0.95rem; }
+
+/* ═════════════ STEP BY STEP ═════════════ */
+.step-card {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+  position: relative;
+}
+.step-card::before {
+  content: '';
+  position: absolute;
+  left: 30px;
+  top: 60px;
+  bottom: -3rem;
+  width: 2px;
+  background: var(--rule);
+}
+.step-card:last-child::before { display: none; }
+
+.step-num {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.6rem;
+  font-style: italic;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
+}
+.step-content h3 { margin-top: 0.5rem; color: var(--ink); }
+
+/* Utility */
+.highlight-code {
+  background: var(--bg2);
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85em;
+  color: var(--secondary);
+}
+
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="title-block">
+    <h1>The <em>Abstract</em> Polynomial</h1>
+    <div class="subtitle">From classical curves to rings, fields, and Galois Theory</div>
+  </div>
+  <div class="header-right">
+    <div class="header-formula">
+      $$ R[x] = \left\{ \sum_{i=0}^{\infty} a_i x^i \mid a_i \in R \right\} $$
+    </div>
+    <button id="themeToggle" class="grp-btn" style="margin-left: 1rem;">🌓 Theme</button>
+  </div>
+</header>
+
+<nav class="tab-nav">
+  <button class="tab-btn active" data-tab="interactive">Interactive Plotter</button>
+  <button class="tab-btn" data-tab="foundations">1. Foundations</button>
+  <button class="tab-btn" data-tab="rings">2. Rings & Ideals</button>
+  <button class="tab-btn" data-tab="fields">3. Field Extensions</button>
+  <button class="tab-btn" data-tab="algorithm">4. Division Algorithm</button>
+  <button class="tab-btn" data-tab="geometry">5. Algebraic Geometry</button>
+  <button class="tab-btn" data-tab="orthogonal">6. Orthogonal Families</button>
+  <button class="tab-btn" data-tab="complexity">7. Computability</button>
+  <button class="tab-btn" data-tab="coding">8. Coding & Crypto</button>
+  <button class="tab-btn" data-tab="essence">9. The Essence</button>
+  <button class="tab-btn" data-tab="glossary">Glossary</button>
+</nav>
+
+<div class="tab-panel active" id="tab-interactive">
+  <div class="interactive-layout">
+    <div class="viz-pane">
+      <div class="canvas-container">
+        <canvas id="polyCanvas" width="800" height="500"></canvas>
+      </div>
+      <div style="margin-top: 1.5rem; display: flex; gap: 2rem;">
+        <div>
+          <span style="display:inline-block; width:12px; height:12px; background:var(--curve-main); border-radius:50%; margin-right:8px;"></span>
+          <span style="font-family:'JetBrains Mono'; font-size:0.85rem; color:var(--ink2)">f(x)</span>
+        </div>
+        <div>
+          <span style="display:inline-block; width:12px; height:12px; background:var(--curve-deriv); border-radius:50%; margin-right:8px;"></span>
+          <span style="font-family:'JetBrains Mono'; font-size:0.85rem; color:var(--ink2)">f'(x) (Derivative)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ctrl-pane">
+      <div class="ctrl-section">
+        <div class="ctrl-head">Select Polynomial Domain</div>
+        <div class="btn-group" id="polySelector">
+          <button class="grp-btn active" data-poly="0">Quadratic</button>
+          <button class="grp-btn" data-poly="1">Cubic</button>
+          <button class="grp-btn" data-poly="2">Quartic</button>
+          <button class="grp-btn" data-poly="3">Quintic</button>
+        </div>
+      </div>
+
+      <div class="ctrl-section" id="coefControls">
+        <div class="ctrl-head">Coefficients (a₀ to aₙ)</div>
+        </div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-head">View Window</div>
+        <div class="slider-block">
+          <div class="slider-label">
+            <span>Zoom</span>
+            <span class="sval" id="zoomVal">1x</span>
+          </div>
+          <input type="range" id="zoomSlider" min="0.1" max="5" step="0.1" value="1">
+        </div>
+      </div>
+      
+      <div class="ctrl-section">
+        <div class="ctrl-head">Real Roots (Approximated)</div>
+        <div id="rootsDisplay" style="font-family: 'JetBrains Mono'; font-size: 0.85rem; color: var(--ink); line-height: 1.6;">
+          --
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-foundations">
+  <div class="content-body">
+    <h2>The Classical View: Functions and Forms</h2>
+    
+    <p>Historically, a polynomial is introduced as a mathematical expression consisting of variables and coefficients, constructed using only the operations of addition, subtraction, multiplication, and non-negative integer exponents. In elementary calculus and algebra, we view polynomials primarily as <strong>functions</strong> mapping real numbers to real numbers: $f: \mathbb{R} \to \mathbb{R}$.</p>
+
+    <div class="math-display">
+      $$ f(x) = a_n x^n + a_{n-1} x^{n-1} + \dots + a_1 x + a_0 $$
+    </div>
+
+    <p>Here, $a_0, \dots, a_n$ are the <em>coefficients</em> (typically drawn from a field like $\mathbb{R}$ or $\mathbb{C}$), and $x$ is the <em>variable</em>. The highest exponent $n$ (where $a_n \neq 0$) is called the <strong>degree</strong> of the polynomial, denoted $\deg(f)$.</p>
+
+    <div class="definition-box">
+      <div class="def-title">Polynomial vs. Polynomial Function</div>
+      <p>In abstract algebra, we must rigorously distinguish between a <strong>formal polynomial</strong> and a <strong>polynomial function</strong>. Over infinite fields like $\mathbb{R}$ or $\mathbb{Q}$, the distinction is subtle because two formal polynomials evaluate to the same function if and only if their coefficients are identical. However, over a finite field (like the integers modulo 2, $\mathbb{F}_2$), this intuition breaks down entirely.</p>
+      <p>Consider $f(x) = x^2 + x$ and $g(x) = 0$ over $\mathbb{F}_2 = \{0, 1\}$. Evaluated as functions: $f(0) = 0^2+0 = 0$, and $f(1) = 1^2+1 = 2 \equiv 0 \pmod 2$. Thus, $f(x) = g(x)$ for all inputs, making them the same <em>function</em>. Yet, as formal polynomials, $x^2 + x$ and $0$ have completely different sequences of coefficients. Abstract algebra is the study of the formal expressions themselves.</p>
+    </div>
+
+    <h2>Roots and The Fundamental Theorem of Algebra</h2>
+    
+    <p>Finding the roots of a polynomial—the values of $x$ for which $f(x) = 0$—drove the development of algebra for centuries. The Babylonians solved quadratics, the Renaissance Italians (Tartaglia, Cardano) solved cubics and quartics, and the quest for the quintic led directly to the invention of Group Theory by Évariste Galois.</p>
+
+    <div class="theorem-box">
+      <div class="theo-title">The Fundamental Theorem of Algebra</div>
+      <p>Every non-constant single-variable polynomial with complex coefficients has at least one complex root. Consequently, a polynomial of degree $n$ over $\mathbb{C}$ factors completely into $n$ linear terms:</p>
+      $$ f(x) = a_n (x - r_1)(x - r_2)\dots(x - r_n) $$
+      <p>where $r_1, \dots, r_n \in \mathbb{C}$ are the roots, not necessarily distinct.</p>
+    </div>
+
+    <p>While the theorem guarantees the <em>existence</em> of roots in $\mathbb{C}$, it provides no algorithmic method for finding them. Furthermore, we might ask: what if our coefficients are not complex numbers? What if they are matrices, or integers modulo $p$? To answer these, we must transcend the classical view and build a rigorous algebraic architecture.</p>
+
+      </div>
+</div>
+
+<div class="tab-panel" id="tab-rings">
+  <div class="content-body">
+    <h2>The Ring of Polynomials $R[x]$</h2>
+
+    <p>To generalize polynomials, we start with a <strong>Ring</strong>, $R$. A ring is an algebraic structure equipped with two operations (addition and multiplication) that generalize the arithmetic of integers. Let $R$ be a commutative ring with identity (for example, $\mathbb{Z}, \mathbb{Q}, \mathbb{R}$, or $\mathbb{Z}/n\mathbb{Z}$).</p>
+
+    <p>We define the <strong>polynomial ring</strong> $R[x]$ strictly as the set of infinite sequences of elements from $R$, where all but finitely many terms are zero:</p>
+
+    <div class="math-display">
+      $$ R[x] = \left\{ (a_0, a_1, a_2, \dots) \mid a_i \in R, \exists N \in \mathbb{N} \text{ such that } a_i = 0 \text{ for all } i > N \right\} $$
+    </div>
+
+    <p>We introduce a formal symbol $x$ (called an <strong>indeterminate</strong>, not a variable), and identify the sequence $(0, 1, 0, 0, \dots)$ with $x$. Through term-wise addition and a specific convolution formula for multiplication, the sequence $(a_0, a_1, \dots, a_N, 0, 0, \dots)$ is written in the familiar notation $\sum_{i=0}^N a_i x^i$.</p>
+
+    <h3>Algebraic Operations in $R[x]$</h3>
+
+    <p>Given $f(x) = \sum a_i x^i$ and $g(x) = \sum b_i x^i$, addition is straightforward term-by-term. Multiplication, however, follows the Cauchy product (discrete convolution):</p>
+
+    <div class="math-display">
+      $$ f(x)g(x) = \sum_{k=0}^{\deg(f)+\deg(g)} c_k x^k, \quad \text{where} \quad c_k = \sum_{i+j=k} a_i b_j $$
+    </div>
+
+    <p>Because $R$ is a ring, $c_k$ is well-defined and elements of $R[x]$ obey the distributive, associative, and commutative properties, confirming $R[x]$ is itself a ring.</p>
+
+    <div class="definition-box">
+      <div class="def-title">Integral Domains</div>
+      <p>A commutative ring is an <em>integral domain</em> if it has no zero divisors (i.e., $ab = 0 \implies a = 0 \text{ or } b = 0$). An elegant and critical theorem in algebra states: <strong>If $R$ is an integral domain, then $R[x]$ is also an integral domain.</strong></p>
+      <p><em>Proof sketch:</em> Look at the leading coefficients. Let $f(x)$ have degree $n$ with leading coefficient $a_n \neq 0$, and $g(x)$ have degree $m$ with leading coefficient $b_m \neq 0$. The leading term of $f(x)g(x)$ is $a_n b_m x^{n+m}$. Since $R$ is an integral domain, $a_n b_m \neq 0$. Thus, $f(x)g(x) \neq 0$, and further, $\deg(fg) = \deg(f) + \deg(g)$.</p>
+    </div>
+
+    <h2>Ideals and Quotient Rings</h2>
+
+    <p>In abstract algebra, we study structures by looking at their <em>Ideals</em>. An ideal $I \subseteq R[x]$ is a subring that absorbs multiplication: if $p(x) \in I$ and $q(x) \in R[x]$, then $p(x)q(x) \in I$. Think of ideals as the generalizations of "even numbers" or "multiples of 3" in the integers.</p>
+
+    <p>If the base ring is a field $F$ (where every non-zero element has a multiplicative inverse, like $\mathbb{Q}$ or $\mathbb{R}$), the polynomial ring $F[x]$ possesses a miraculous property: it is a <strong>Principal Ideal Domain (PID)</strong>. This means <em>every</em> ideal in $F[x]$ is generated by a single polynomial.</p>
+
+    <p>We can form <strong>Quotient Rings</strong> $F[x] / \langle p(x) \rangle$. This is the ring of polynomials where we declare $p(x) \equiv 0$. It is perfectly analogous to modular arithmetic $\mathbb{Z}/n\mathbb{Z}$, but instead of taking remainders after dividing by an integer $n$, we take remainders after polynomial long division by $p(x)$.</p>
+
+    <div class="warning-box">
+      <div class="warn-title">Explicit Doubt: Open Problems in Polynomial Rings</div>
+      <p>While the univariate case $F[x]$ is completely understood as a PID, the multivariate case $F[x_1, \dots, x_n]$ is vastly more complex. It is a Noetherian ring (by Hilbert's Basis Theorem), but <em>not</em> a PID. Many properties of multivariate polynomials map directly to algebraic geometry (the study of geometric shapes defined by polynomial equations). <br><br><strong>For this specific part, I don't know</strong> the absolute geometric resolution to some behaviors, as determining the structural bounds of polynomial mappings in higher dimensions leads to profound unsolved problems, such as the famous <strong>Jacobian Conjecture</strong>, which remains unproven to this day.</p>
+    </div>
+
+    <h2>The Hierarchy of Rings</h2>
+    <p>To fully appreciate <i>F[x]</i>, one must understand where it sits in the algebraic hierarchy. All Fields are Euclidean Domains (EDs). All EDs are Principal Ideal Domains (PIDs). All PIDs are Unique Factorization Domains (UFDs), and all UFDs are Integral Domains. <i>F[x]</i> is an ED because we have a division algorithm based on polynomial degree, which forces it to be a PID and a UFD. This guarantees that every polynomial factors uniquely into irreducible polynomials, analogous to the prime factorization of integers.</p>
+    
+    <h2>Multivariate Ideals and Gröbner Bases</h2>
+    <p>When moving from $F[x]$ to $F[x_1, \dots, x_n]$, we lose the PID property. An ideal might require multiple generators, such as $I = \langle x^2 + y^2 - 1, xy - 1 \rangle$. To computationally determine if a polynomial belongs to such an ideal, we cannot rely on standard long division.</p>
+    
+    <p>The solution is a <strong>Gröbner Basis</strong>. By imposing a strict ordering on multivariate monomials (like lexicographic ordering), Buchberger's Algorithm allows us to transform any set of generators into a Gröbner Basis. Once we have this basis, multivariate division yields a unique remainder, brilliantly solving the Ideal Membership Problem.</p>
+    
+    <div class="warning-box">
+      <div class="warn-title">Algorithmic Complexity</div>
+      <p>While Buchberger's algorithm guarantees a Gröbner Basis in finite time, the worst-case complexity is doubly exponential with respect to the number of variables. <strong>For this specific part, I don't know</strong> if a fundamentally faster, non-exponential algorithm could ever exist for general multivariate systems, as the problem is intrinsically linked to EXPSPACE-complete complexity classes.</p>
+    </div>
+
+    <h2>Symmetric Polynomials and Vieta's Formulas</h2>
+    <p>In $F[x_1, \dots, x_n]$, a <strong>symmetric polynomial</strong> is one that remains unchanged under any permutation of its variables. For example, $x_1 + x_2$ and $x_1 x_2$ are symmetric in two variables.</p>
+    <p>The <em>Fundamental Theorem of Symmetric Polynomials</em> states that every symmetric polynomial can be expressed uniquely as a polynomial in the <strong>elementary symmetric polynomials</strong>. This connects deeply to <strong>Vieta's Formulas</strong>, which express the coefficients of a univariate polynomial as elementary symmetric polynomials of its roots. For a monic polynomial $x^n + a_{n-1}x^{n-1} + \dots + a_0$ with roots $r_1, \dots, r_n$:</p>
+    <ul>
+      <li>$a_{n-1} = -(r_1 + r_2 + \dots + r_n)$</li>
+      <li>$a_{n-2} = (r_1 r_2 + r_1 r_3 + \dots + r_{n-1} r_n)$</li>
+      <li>$a_0 = (-1)^n (r_1 r_2 \dots r_n)$</li>
+    </ul>
+    
+    <h2>When Polynomial Rings are Not PIDs</h2>
+    <p>We previously established that if <i>F</i> is a field, <i>F[x]</i> is a Principal Ideal Domain. But what if the coefficients come from a ring that is not a field? Consider <i>Z[x]</i>, the ring of polynomials with integer coefficients.</p>
+    
+    <p><i>Z[x]</i> is a Unique Factorization Domain, but it is <strong>not</strong> a PID. Consider the ideal generated by the integer 2 and the indeterminate <i>x</i>, denoted <i>I = &lang;2, x&rang;</i>. This ideal consists of all polynomials whose constant term is even.</p>
+    
+    <div class="warning-box">
+      <div class="warn-title">The Loss of Principal Generation</div>
+      <p>There is no single polynomial in <i>Z[x]</i> that can generate <i>I = &lang;2, x&rang;</i>. If such a generator <i>g(x)</i> existed, it would have to divide both 2 and <i>x</i>. The only common divisors are 1 and -1, but the ideal generated by 1 is the entire ring <i>Z[x]</i>, and our ideal only contains polynomials with even constant terms. Thus, <i>I</i> requires at least two generators, proving <i>Z[x]</i> is not a PID.</p>
+    </div>
+
+    <p>To navigate factorization in <i>Z[x]</i>, we rely on <strong>Gauss's Lemma</strong>. It states that the product of two primitive polynomials (polynomials whose coefficients have a greatest common divisor of 1) is also primitive. This guarantees that if a polynomial with integer coefficients factors over the rational numbers <i>Q[x]</i>, it must also factor over the integers <i>Z[x]</i>.</p>
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-fields">
+  <div class="content-body">
+    <h2>
+      Deep Intuition: The Architecture of a Field
+    </h2>
+    
+    <p>
+      Before we can construct a field extension, we must intuitively understand what a <strong>Field</strong> actually represents in the universe of abstract algebra. A field is not just a set of numbers; it is an environment of ultimate algebraic freedom.
+    </p>
+
+    <div class="step-card">
+      <div class="step-num">
+        I
+      </div>
+      <div class="step-content">
+        <h3>
+          The Freedom of Reversibility
+        </h3>
+        <p>
+          In the ring of integers (<i>Z</i>), you can add, subtract, and multiply freely. However, you are trapped if you attempt to reverse multiplication. The equation <i>3x = 5</i> has no solution in the integers. The integers form a rigid grid where division forces you to fall into the "gaps" between the grid lines.
+        </p>
+        <p>
+          A Field (like the rational numbers <i>Q</i>, the real numbers <i>R</i>, or the complex numbers <i>C</i>) is an environment where the operation of division is fully unlocked. In a field, every non-zero element has a multiplicative inverse. You can always divide. This complete reversibility is what gives fields their smooth, continuous-like algebraic properties, allowing for the existence of linear algebra, vector spaces, and calculus.
+        </p>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">
+        II
+      </div>
+      <div class="step-content">
+        <h3>
+          The Wall of Irreducibility
+        </h3>
+        <p>
+          Even in a field like the rational numbers <i>Q</i>, we hit a different kind of wall: polynomial equations. Consider the polynomial <i>f(x) = x&sup2; - 2</i>. If we restrict our entire universe of existence to <i>Q</i>, this polynomial simply does not cross the x-axis. The root does not exist.
+        </p>
+        <p>
+          Classical mathematics viewed this as a dead end. Abstract algebra views this as an opportunity for world-building. If the field does not contain the root, we don't give up; we mathematically forge a larger field that <em>does</em> contain the root. This is the essence of a field extension.
+        </p>
+      </div>
+    </div>
+
+    <h2>
+      The Intuition of Adjoining a Root
+    </h2>
+
+    <p>
+      How do we build a universe where <i>x&sup2; - 2 = 0</i> has an answer? We perform a process called <strong>Adjoining</strong>. We take our base field <i>Q</i>, and we simply invent a new symbol&mdash;let's call it <i>&theta;</i>. We declare by fiat that <i>&theta;</i> obeys the rule <i>&theta;&sup2; - 2 = 0</i>, meaning <i>&theta;&sup2; = 2</i>.
+    </p>
+
+    <div class="insight-box">
+      <div class="ins-title">
+        The Contagion of Closure
+      </div>
+      <p>
+        We cannot just add <i>&theta;</i> to <i>Q</i> and stop. A field must be closed under addition and multiplication. If <i>&theta;</i> exists, and <i>3</i> exists, then <i>3&theta;</i> must exist. If <i>5</i> exists, then <i>5 + 3&theta;</i> must exist. 
+      </p>
+      <p>
+        The moment we drop this single new element <i>&theta;</i> into the field <i>Q</i>, it acts like a crystal seed in a supersaturated solution. It geometrically expands the field into a new 2-dimensional vector space, forcing the creation of every number of the form <i>a + b&theta;</i> (where <i>a</i> and <i>b</i> are rational numbers).
+      </p>
+    </div>
+
+    <h3>
+      The Arithmetic of the New World
+    </h3>
+
+    <p>
+      Let's look at how arithmetic works in this newly forged field extension, denoted as <i>Q(&theta;)</i>. Because we constructed it, we know the rules.
+    </p>
+
+    <ul>
+      <li>
+        <strong>Addition:</strong> 
+        <br>
+        <i>(a + b&theta;) + (c + d&theta;) = (a + c) + (b + d)&theta;</i>
+        <br>
+        This is trivial; it behaves exactly like vector addition.
+      </li>
+      <li>
+        <strong>Multiplication:</strong> 
+        <br>
+        <i>(a + b&theta;)(c + d&theta;) = ac + ad&theta; + bc&theta; + bd&theta;&sup2;</i>
+        <br>
+        Wait! We have a <i>&theta;&sup2;</i> term. But remember our foundational rule: <i>&theta;&sup2; = 2</i>. We substitute this back in:
+        <br>
+        <i>= ac + ad&theta; + bc&theta; + bd(2)</i>
+        <br>
+        <i>= (ac + 2bd) + (ad + bc)&theta;</i>
+      </li>
+    </ul>
+
+    <p>
+      The minimal polynomial (in this case, <i>x&sup2; - 2</i>) acts as a "folding mechanism." It ensures that no matter how high the powers of <i>&theta;</i> get during multiplication, they always fold back down into the linear form <i>a + b&theta;</i>. 
+    </p>
+
+    <h2>
+      The Miracle of Division
+    </h2>
+
+    <p>
+      Addition and multiplication are easy. But for <i>Q(&theta;)</i> to be a true Field, we must be able to divide. If I have a number like <i>3 + 4&theta;</i>, does it have a multiplicative inverse? Is there a number <i>x + y&theta;</i> such that:
+    </p>
+
+    <div class="math-display">
+      (3 + 4&theta;)(x + y&theta;) = 1
+    </div>
+
+    <p>
+      In high school algebra, this is taught as "rationalizing the denominator." You multiply the top and bottom by the conjugate <i>3 - 4&theta;</i>.
+    </p>
+
+    <div class="math-display">
+      1 / (3 + 4&theta;) = (3 - 4&theta;) / ((3 + 4&theta;)(3 - 4&theta;))
+      <br><br>
+      = (3 - 4&theta;) / (9 - 16&theta;&sup2;)
+      <br><br>
+      = (3 - 4&theta;) / (9 - 16(2))
+      <br><br>
+      = (3 - 4&theta;) / (9 - 32)
+      <br><br>
+      = (3 - 4&theta;) / (-23)
+      <br><br>
+      = (-3/23) + (4/23)&theta;
+    </div>
+
+    <p>
+      This is a miracle. The inverse exists, and its coefficients <i>(-3/23)</i> and <i>(4/23)</i> are perfectly valid rational numbers. Division is completely internal to our new universe.
+    </p>
+
+    <div class="warning-box">
+      <div class="warn-title">
+        Why Bezout's Identity is the True Engine of Division
+      </div>
+      <p>
+        Rationalizing the denominator works easily for quadratic extensions (degree 2). But what if we adjoined a root of <i>x&sup5; - x + 1</i>? There is no simple "conjugate" to multiply by. 
+      </p>
+      <p>
+        This is where the abstract algebraic definition of the quotient ring <i>F[x]/&lang;p(x)&rang;</i> reveals its true power. Because <i>p(x)</i> is irreducible, it is coprime to any lesser-degree polynomial <i>a(x)</i>. By the Extended Euclidean Algorithm (Bezout's Identity), there exist polynomials <i>s(x)</i> and <i>t(x)</i> such that:
+      </p>
+      <p>
+        <i>a(x)s(x) + p(x)t(x) = 1</i>
+      </p>
+      <p>
+        When we evaluate this in our extended field where <i>p(&theta;) = 0</i>, the second term vanishes entirely, leaving:
+      </p>
+      <p>
+        <i>a(&theta;)s(&theta;) = 1</i>
+      </p>
+      <p>
+        Therefore, <i>s(&theta;)</i> is the exact inverse of <i>a(&theta;)</i>! The Euclidean Algorithm structurally guarantees that division is always possible in a quotient ring generated by an irreducible polynomial, no matter how high the degree.
+      </p>
+    </div>
+
+    <h2>
+      The Modulo Analogy: Polynomial Clocks
+    </h2>
+
+    <p>
+      To truly grasp the quotient ring <i>F[x]/&lang;p(x)&rang;</i>, we can compare it to something deeply familiar: reading a clock.
+    </p>
+
+    <div class="step-card">
+      <div class="step-num">
+        A
+      </div>
+      <div class="step-content">
+        <h3>
+          Integer Clocks (Z / nZ)
+        </h3>
+        <p>
+          In standard 12-hour clock arithmetic, the number 12 is equivalent to 0. If you count past 12, you wrap around.
+          <br>
+          <i>8 + 5 = 13 &equiv; 1 (mod 12)</i>.
+        </p>
+        <p>
+          In algebra, we say we are working in the quotient ring <i>Z / 12Z</i>. We have "killed off" all multiples of 12 by forcing them to equal zero.
+        </p>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">
+        B
+      </div>
+      <div class="step-content">
+        <h3>
+          Polynomial Clocks (F[x] / &lang;p(x)&rang;)
+        </h3>
+        <p>
+          A field extension is exactly the same concept, but applied to polynomials instead of integers. 
+        </p>
+        <p>
+          Consider <i>R[x] / &lang;x&sup2; + 1&rang;</i>. Here, the polynomial <i>x&sup2; + 1</i> is our "12 on the clock." We decree that <i>x&sup2; + 1 &equiv; 0</i>.
+        </p>
+        <p>
+          This immediately implies that <i>x&sup2; &equiv; -1</i>. Any time we multiply polynomials and get an <i>x&sup2;</i>, we just replace it with <i>-1</i>. We have created a "clock" where powers wrap around. 
+        </p>
+        <p>
+          Because any power of <i>x</i> greater than 1 can be reduced down using this wrapping rule, the only "hours" on this clock are polynomials of degree 1 or 0: <i>a + bx</i>. Since <i>x&sup2; = -1</i>, this <i>x</i> is functionally identical to the imaginary unit <i>i</i>. We have just built the Complex Numbers <i>C</i> from the Real Numbers <i>R</i> using nothing but a polynomial clock.
+        </p>
+      </div>
+    </div>
+
+    <h2>
+      Degrees of Freedom: Fields as Vector Spaces
+    </h2>
+
+    <p>
+      One of the most profound realizations in abstract algebra is that a field extension <i>E</i> over a base field <i>F</i> is automatically a Vector Space. The elements of <i>E</i> are the "vectors," and the elements of <i>F</i> are the "scalars."
+    </p>
+
+    <div class="insight-box">
+      <div class="ins-title">
+        The Dimensionality of Extensions
+      </div>
+      <p>
+        When we adjoin a root of an irreducible polynomial of degree <i>n</i>, the resulting field extension is an <i>n</i>-dimensional vector space over the base field. 
+      </p>
+      <p>
+        For example, <i>Q(&radic;2)</i> is a 2-dimensional vector space over <i>Q</i>. Its basis vectors are <i>{1, &radic;2}</i>. Every element in the extension can be uniquely written as a linear combination of these basis vectors: <i>a(1) + b(&radic;2)</i>.
+      </p>
+      <p>
+        If we adjoin a root <i>&alpha;</i> of an irreducible cubic polynomial like <i>x&sup3; - 2</i>, the extension <i>Q(&alpha;)</i> is a 3-dimensional vector space. Its basis is <i>{1, &alpha;, &alpha;&sup2;}</i>. Every element looks like <i>a + b&alpha; + c&alpha;&sup2;</i>.
+      </p>
+    </div>
+
+    <h2>
+      The Tower of Fields
+    </h2>
+
+    <p>
+      Field extensions can be stacked on top of each other. Once you build an extension, it becomes a valid field in its own right, and you can use it as the base to build an even larger extension.
+    </p>
+
+    <div class="step-card">
+      <div class="step-num">
+        &uarr;
+      </div>
+      <div class="step-content">
+        <h3>
+          Stacking Extensions
+        </h3>
+        <p>
+          Suppose we start with <i>Q</i>. 
+        </p>
+        <p>
+          1. We want a root of <i>x&sup2; - 2</i>. We build the extension <i>F&ensp;=&ensp;Q(&radic;2)</i>. This is a degree 2 extension.
+        </p>
+        <p>
+          2. Now, working entirely inside <i>F</i>, we want a root of <i>x&sup2; - 3</i>. We build a new extension <i>K&ensp;=&ensp;F(&radic;3)</i>, which is equivalent to <i>Q(&radic;2, &radic;3)</i>.
+        </p>
+        <p>
+          <strong>The Tower Law:</strong> The dimensions of stacked vector spaces multiply together. Since <i>[F : Q] = 2</i> and <i>[K : F] = 2</i>, the total dimension <i>[K : Q] = 2 &times; 2 = 4</i>. The basis for this top-level field over the base rational numbers is <i>{1, &radic;2, &radic;3, &radic;6}</i>. Every number in this universe looks like <i>a + b&radic;2 + c&radic;3 + d&radic;6</i>.
+        </p>
+      </div>
+    </div>
+
+    <h2>
+      The Algebraic Closure: The Ultimate Ceiling
+    </h2>
+
+    <p>
+      If we can add roots one by one, creating larger and larger fields, what happens if we don't stop? What if we collect <em>every single polynomial</em> that exists with rational coefficients, find all of their roots, and adjoin all of them into one massive, ultimate field extension?
+    </p>
+
+    <p>
+      The result is called the <strong>Algebraic Closure</strong> of <i>Q</i>, denoted as <i>Q&#x0304;</i> (Q-bar).
+    </p>
+
+    <div class="definition-box">
+      <div class="def-title">
+        Algebraically Closed Fields
+      </div>
+      <p>
+        A field is algebraically closed if every non-constant polynomial defined within it has a root within it. Once you reach an algebraically closed field, the "Missing Root" crisis vanishes permanently. You can never build an algebraic extension of an algebraically closed field, because there are no missing algebraic roots left to adjoin.
+      </p>
+      <p>
+        The Fundamental Theorem of Algebra proves that the Complex Numbers <i>C</i> are algebraically closed. The Algebraic Numbers <i>Q&#x0304;</i> form a subfield of <i>C</i> that is also algebraically closed, containing only the roots of polynomials, deliberately excluding transcendental numbers like <i>&pi;</i> and <i>e</i>.
+      </p>
+    </div>
+
+    <div class="warning-box">
+      <div class="warn-title">
+        The Absolute Galois Group
+      </div>
+      <p>
+        When we consider the Algebraic Closure of the rational numbers, we encounter the Absolute Galois Group, <i>Gal(Q&#x0304; / Q)</i>. This group encodes every possible algebraic symmetry of every possible algebraic number simultaneously, tying together the roots of infinitely many polynomials in a dizzying infinite-dimensional web. 
+      </p>
+      <p>
+        <strong>For this specific part, I don't know</strong> if its complete structure can ever be finitely described or fully comprehended by human mathematics. Its topological complexity is profound, behaving as a profinite group that acts as the ultimate frontier of modern algebraic number theory and the Langlands Program.
+      </p>
+    </div>
+
+    <h2>Constructing the Impossible: Field Extensions</h2>
+
+    <p>What happens when a polynomial has no roots in our chosen field? For instance, $f(x) = x^2 + 1$ has no real roots because no real number squares to $-1$. Abstract algebra provides a mechanism not just to <em>find</em> roots, but to geometrically <em>manufacture</em> universes where those roots exist.</p>
+
+    <p>We do this using quotient rings. Let $F$ be a field, and $p(x) \in F[x]$ be an <strong>irreducible polynomial</strong> (a polynomial that cannot be factored into lower-degree polynomials in $F[x]$).</p>
+
+    <div class="theorem-box">
+      <div class="theo-title">Kronecker's Theorem</div>
+      <p>Let $F$ be a field and $p(x)$ be a non-constant irreducible polynomial in $F[x]$. Then the quotient ring $E = F[x] / \langle p(x) \rangle$ is a <strong>Field</strong>, and it contains an isomorphic copy of $F$ as well as a root of $p(x)$.</p>
+    </div>
+
+    <p>Let's apply this to $x^2 + 1$ over the reals, $\mathbb{R}$. The polynomial is irreducible over $\mathbb{R}$. We construct the quotient field:</p>
+    
+    <div class="math-display">
+      $$ E = \frac{\mathbb{R}[x]}{\langle x^2 + 1 \rangle} $$
+    </div>
+
+    <p>In this new field $E$, the equivalence class of $x$, let's call it $\alpha$, satisfies $\alpha^2 + 1 = 0$. Therefore, $\alpha^2 = -1$. By defining this quotient, we have rigorously constructed the complex numbers $\mathbb{C}$ entirely from polynomials, without relying on vague notions of "imaginary" quantities! Every element in $E$ looks like $a + b\alpha$, which is exactly $a + bi$.</p>
+
+    
+    <h2>Splitting Fields and Galois Theory</h2>
+
+    <p>If we continue adjoining roots to a field until a polynomial $f(x)$ factors completely into linear terms, we reach the <strong>Splitting Field</strong> of $f(x)$. The splitting field is the smallest field extension containing all roots of the polynomial.</p>
+
+    <p><strong>Galois Theory</strong> examines the symmetries of these roots. The <em>Galois Group</em> of a polynomial is the group of field automorphisms of the splitting field that leave the base field fixed. Essentially, it describes how the roots of the polynomial can be permuted while preserving all algebraic equations holding among them.</p>
+
+    <table class="algebra-table">
+      <thead>
+        <tr>
+          <th>Degree of $f(x)$</th>
+          <th>Galois Group behavior (General Case)</th>
+          <th>Solvability by Radicals</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>$n = 2$</td>
+          <td>Symmetric Group $S_2$ (order 2)</td>
+          <td>Always solvable (Quadratic Formula)</td>
+        </tr>
+        <tr>
+          <td>$n = 3$</td>
+          <td>$S_3$ or $A_3$</td>
+          <td>Always solvable (Cardano's Formula)</td>
+        </tr>
+        <tr>
+          <td>$n = 4$</td>
+          <td>Subgroups of $S_4$</td>
+          <td>Always solvable (Ferrari's Formula)</td>
+        </tr>
+        <tr>
+          <td>$n \ge 5$</td>
+          <td>$S_n$ or $A_n$</td>
+          <td><strong>Not generally solvable</strong> (Abel-Ruffini Theorem)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>The Abel-Ruffini theorem is a crowning achievement of abstract algebra. It proves that there is no general formula using addition, subtraction, multiplication, division, and root extraction (radicals) capable of solving all polynomial equations of degree 5 or higher. The reason lies deeply embedded in the structure of the symmetric group $S_5$, which is not a <em>solvable group</em>.</p>
+
+    <h2>Algebraic vs. Transcendental Extensions</h2>
+    <p>When we adjoin an element &alpha; to a field <i>F</i> to form <i>F(&alpha;)</i>, the nature of the extension depends entirely on polynomials. If &alpha; is the root of some non-zero polynomial with coefficients in <i>F</i>, the extension is <strong>algebraic</strong> (e.g., extending the rationals with the square root of 2). If no such polynomial exists, &alpha; is <strong>transcendental</strong> over <i>F</i> (e.g., adjoining &pi; or <i>e</i> to the rationals).</p>
+    <div class="theorem-box">
+      <div class="theo-title">Degree of an Extension</div>
+      <p>The field extension <i>F(&alpha;)</i> can be viewed as a vector space over the base field <i>F</i>. The dimension of this vector space is called the <em>degree</em> of the extension, denoted <i>[F(&alpha;) : F]</i>. For an algebraic extension, this degree is exactly equal to the degree of the minimal irreducible polynomial of &alpha; over <i>F</i>.</p>
+    </div>
+    
+    <h2>Finite Fields (Galois Fields)</h2>
+    <p>Polynomial field extensions are not limited to infinite fields like $\mathbb{Q}$ or $\mathbb{R}$. If we start with a finite field $\mathbb{F}_p$ (integers modulo a prime $p$) and take the quotient by an irreducible polynomial $q(x)$ of degree $n$, we generate a new, larger finite field containing exactly $p^n$ elements.</p>
+    
+    <div class="math-display">
+      $$ GF(p^n) \cong \frac{\mathbb{F}_p[x]}{\langle q(x) \rangle} $$
+    </div>
+    
+    <p>These fields, denoted $GF(p^n)$ or $\mathbb{F}_{p^n}$, are completely classified by their size: for any prime power $p^n$, there exists exactly one finite field of that size (up to isomorphism). This algebraic construction is the absolute bedrock of modern digital security. The Advanced Encryption Standard (AES) performs its mixing operations entirely within the polynomial field $GF(2^8)$, defined by the irreducible polynomial $x^8 + x^4 + x^3 + x + 1$.</p>
+
+    <h2>Geometric Impossibilities: Ruler and Compass</h2>
+    <p>Ancient Greek geometry was obsessed with constructions using only an idealized unmarked straightedge and compass. Translating these geometric actions into algebra reveals that any constructible length must reside in a field extension formed entirely by a sequence of quadratic (degree 2) extensions.</p>
+    <p>Consequently, any constructible number must have a minimal polynomial whose degree is a power of 2 ($2^k$). This elegantly proves the impossibility of three famous ancient problems:</p>
+    <ul>
+      <li><strong>Doubling the Cube:</strong> Requires constructing $\sqrt[3]{2}$, the root of $x^3 - 2$. The extension degree is 3 (not a power of 2).</li>
+      <li><strong>Trisecting the Angle:</strong> Trisecting a general angle (like $60^\circ$) requires solving $4x^3 - 3x - \cos(60^\circ) = 0$, yielding a degree 3 extension.</li>
+      <li><strong>Squaring the Circle:</strong> Requires constructing $\sqrt{\pi}$. Since $\pi$ is transcendental, the extension is infinite-dimensional. <strong>For this specific part, I don't know</strong> if there is any pure-geometric heuristic that intuitively explains the impossibility of squaring the circle without invoking transcendental field theory, but the algebraic proof remains definitive.</li>
+    </ul>
+    
+    <h2>Fields of Prime Characteristic and the Frobenius Endomorphism</h2>
+    <p>In fields like the rational numbers <i>Q</i> or the reals <i>R</i>, adding 1 to itself repeatedly (1 + 1 + 1...) never equals zero. These are fields of <em>characteristic zero</em>. However, in finite fields, this sequence eventually loops back to zero. If adding 1 to itself <i>p</i> times equals zero, the field has <strong>characteristic p</strong> (where <i>p</i> must be prime).</p>
+    
+    <p>Polynomial arithmetic behaves entirely differently in characteristic <i>p</i> due to a phenomenon jokingly called the "Freshman's Dream":</p>
+    
+    <div class="math-display">
+      (x + y)<sup>p</sup> = x<sup>p</sup> + y<sup>p</sup>
+    </div>
+    
+    <p>Because the binomial coefficients for all intermediate terms are multiples of <i>p</i>, they evaluate to zero in the field. This leads to the definition of the <strong>Frobenius Endomorphism</strong>, a mapping <i>&phi;(a) = a<sup>p</sup></i>.</p>
+    
+    <div class="definition-box">
+      <div class="def-title">Perfect Fields</div>
+      <p>In characteristic <i>p</i>, the Frobenius map is an injective ring homomorphism. If it is also surjective (meaning every element has a <i>p</i>-th root), the field is called a <strong>Perfect Field</strong>. Over perfect fields, every irreducible polynomial is separable (has distinct roots). All finite fields and all fields of characteristic zero are perfect.</p>
+    </div>
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-algorithm">
+  <div class="content-body">
+    
+    <h2>The Polynomial Division Algorithm</h2>
+    
+    <p>Just as integers can be divided to yield a quotient and a remainder, polynomials over a field can be divided in the exact same manner. This algorithm is the engine that drives the theory of Ideals in $F[x]$ and the Euclidean Algorithm for finding the Greatest Common Divisor (GCD) of two polynomials.</p>
+
+    <div class="theorem-box">
+      <div class="theo-title">Division Algorithm for $F[x]$</div>
+      <p>Let $F$ be a field, and let $a(x), b(x) \in F[x]$ with $b(x) \neq 0$. Then there exist unique polynomials $q(x)$ and $r(x)$ in $F[x]$ such that:</p>
+      $$ a(x) = b(x)q(x) + r(x) $$
+      <p>where either $r(x) = 0$ or $\deg(r) < \deg(b)$.</p>
+    </div>
+
+    <p>Let us walk through a concrete example over the field of rational numbers $\mathbb{Q}$.</p>
+
+    <div class="step-card">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h3>Define the Dividend and Divisor</h3>
+        <p>Let the dividend be <span class="highlight-code">a(x) = 2x³ - 5x² + 4x - 1</span>.</p>
+        <p>Let the divisor be <span class="highlight-code">b(x) = x - 2</span>.</p>
+        <p>We want to find $q(x)$ and $r(x)$ such that $a(x) = (x-2)q(x) + r(x)$.</p>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h3>First Iteration: Eliminate Leading Term</h3>
+        <p>Divide the leading term of $a(x)$ by the leading term of $b(x)$:</p>
+        <div class="math-display">$$ \frac{2x^3}{x} = 2x^2 $$</div>
+        <p>This $2x^2$ becomes the first term of our quotient $q(x)$. Multiply $b(x)$ by $2x^2$:</p>
+        <div class="math-display">$$ 2x^2(x - 2) = 2x^3 - 4x^2 $$</div>
+        <p>Subtract this from $a(x)$ to get the first intermediate remainder:</p>
+        <div class="math-display">$$ (2x^3 - 5x^2 + 4x - 1) - (2x^3 - 4x^2) = -x^2 + 4x - 1 $$</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h3>Second Iteration</h3>
+        <p>Our new dividend is $-x^2 + 4x - 1$. Divide its leading term by the leading term of $b(x)$:</p>
+        <div class="math-display">$$ \frac{-x^2}{x} = -x $$</div>
+        <p>Add $-x$ to our quotient. Multiply $b(x)$ by $-x$:</p>
+        <div class="math-display">$$ -x(x - 2) = -x^2 + 2x $$</div>
+        <p>Subtract to get the new remainder:</p>
+        <div class="math-display">$$ (-x^2 + 4x - 1) - (-x^2 + 2x) = 2x - 1 $$</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h3>Third Iteration</h3>
+        <p>New dividend: $2x - 1$. Divide leading terms:</p>
+        <div class="math-display">$$ \frac{2x}{x} = 2 $$</div>
+        <p>Add $2$ to the quotient. Multiply $b(x)$ by $2$:</p>
+        <div class="math-display">$$ 2(x - 2) = 2x - 4 $$</div>
+        <p>Subtract:</p>
+        <div class="math-display">$$ (2x - 1) - (2x - 4) = 3 $$</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <h3>Halt and Compose Result</h3>
+        <p>The degree of our remainder $3$ is $0$, which is strictly less than the degree of our divisor $x-2$ (which is $1$). The algorithm terminates.</p>
+        <p>Our quotient is <span class="highlight-code">q(x) = 2x² - x + 2</span> and our remainder is <span class="highlight-code">r(x) = 3</span>.</p>
+        <div class="math-display">
+          $$ 2x^3 - 5x^2 + 4x - 1 = (x - 2)(2x^2 - x + 2) + 3 $$
+        </div>
+      </div>
+    </div>
+    
+
+    <h2>Polynomial Interpolation</h2>
+    <p>A remarkable property of polynomials is their flexibility in fitting data points. Given any set of <i>n + 1</i> distinct points (<i>x₀, y₀</i>) to (<i>xₙ, yₙ</i>) in the real plane, there exists exactly one polynomial of degree at most <i>n</i> that passes through all of them. This is the foundation of <strong>Lagrange Interpolation</strong>.</p>
+    <div class="definition-box">
+      <div class="def-title">Lagrange Basis Polynomials</div>
+      <p>The interpolating polynomial is constructed using basis polynomials <i>lⱼ(x)</i>, which are designed to equal 1 at <i>xⱼ</i> and 0 at all other <i>xₘ</i>. The unique polynomial is <i>P(x) = &Sigma; yⱼ lⱼ(x)</i>. This classical result bridges abstract ring theory with numerical analysis and computer graphics.</p>
+    </div>
+
+    <h2>Roots of Unity and Cyclotomic Polynomials</h2>
+    <p>When we look for the roots of the polynomial $f(x) = x^n - 1$ in the complex plane, we find the $n$-th roots of unity, which form a regular $n$-gon inscribed in the unit circle. The structure of these roots leads to a special class of polynomials.</p>
+    
+    <div class="definition-box">
+      <div class="def-title">The Cyclotomic Polynomial</div>
+      <p>The $n$-th cyclotomic polynomial, denoted $\Phi_n(x)$, is the unique irreducible polynomial with integer coefficients that is a divisor of $x^n - 1$ and is not a divisor of $x^k - 1$ for any $k < n$. Its roots are exactly the <em>primitive</em> $n$-th roots of unity.</p>
+    </div>
+    
+    <p>These polynomials possess remarkable integer properties. For instance, $\Phi_p(x) = x^{p-1} + x^{p-2} + \dots + x + 1$ for any prime $p$. They are crucial in proving theorems about regular polygons (like Gauss's construction of the 17-gon) and form the foundation of many modern cryptographic systems.</p>
+
+    <h2>Analytic Functions and Taylor Polynomials</h2>
+    <p>While polynomials themselves are finite algebraic constructs, calculus extends this idea to the infinite. A <strong>Taylor Polynomial</strong> serves as a finite approximation of a smooth (infinitely differentiable) function around a specific point. As the degree of the Taylor polynomial increases, it conforms more closely to the original function.</p>
+    <div class="math-display">
+      $$ P_k(x) = \sum_{n=0}^k \frac{f^{(n)}(a)}{n!} (x - a)^n $$
+    </div>
+    <p>When we allow the degree to approach infinity, we transition from the algebraic realm of polynomials into the analytical realm of power series. Functions that are perfectly equal to their infinite Taylor series in some neighborhood are called <em>analytic</em>.</p>
+    
+    <h2>The Formal Derivative</h2>
+    <p>In calculus, the derivative is defined using limits and infinitesimals. However, in abstract algebra, limits may not exist (for example, over a finite field). We bypass this by defining the <strong>formal derivative</strong> purely as an algebraic operation on the coefficients.</p>
+    
+    <div class="definition-box">
+      <div class="def-title">Algebraic Derivative Definition</div>
+      <p>Let <i>f(x) = a₀ + a₁x + a₂x² + ... + aₙxⁿ</i> be a polynomial in <i>R[x]</i>. Its formal derivative, denoted <i>D(f)</i> or <i>f'(x)</i>, is defined strictly by the rule:</p>
+      <p><i>f'(x) = a₁ + 2a₂x + 3a₃x² + ... + n aₙxⁿ⁻¹</i></p>
+    </div>
+    
+    <p>This definition miraculously preserves all the classical algebraic rules of calculus—the sum rule, the product rule (Leibniz rule), and the chain rule—without ever invoking the concept of a limit. It is a purely combinatorial manipulation of sequences in the ring.</p>
+
+    <div class="theorem-box">
+      <div class="theo-title">Multiplicity of Roots</div>
+      <p>The formal derivative is essential for finding repeated roots algebraically. A field element <i>r</i> is a multiple root of <i>f(x)</i> if and only if <i>f(r) = 0</i> and <i>f'(r) = 0</i>. This allows us to detect square-free polynomials simply by computing the greatest common divisor: <i>gcd(f, f') = 1</i> guarantees that <i>f(x)</i> has no repeated roots in any field extension.</p>
+    </div>
+    <h2>The Remainder and Factor Theorems</h2>
+    <p>Two profound but immediate consequences of the Division Algorithm are the Remainder Theorem and the Factor Theorem.</p>
+    <ul>
+      <li><strong>The Remainder Theorem:</strong> If a polynomial <i>f(x)</i> is divided by a linear divisor <i>(x - c)</i>, the constant remainder <i>r</i> is exactly equal to <i>f(c)</i>.</li>
+      <li><strong>The Factor Theorem:</strong> A polynomial <i>f(x)</i> has a root at <i>x = c</i> (meaning <i>f(c) = 0</i>) if and only if <i>(x - c)</i> is a factor of <i>f(x)</i>. This directly links the algebraic evaluation of a polynomial to its structural factorization.</li>
+    </ul>
+
+    <h2>The Extended Euclidean Algorithm and Bezout's Identity</h2>
+    <p>Because $F[x]$ is a Euclidean Domain, we can apply the Euclidean algorithm to find the Greatest Common Divisor (GCD) of two polynomials $a(x)$ and $b(x)$. By tracking the quotients at each step and working backward, we arrive at Bezout's Identity for polynomials.</p>
+    
+    <div class="theorem-box">
+      <div class="theo-title">Bezout's Identity in F[x]</div>
+      <p>For any non-zero polynomials $a(x), b(x) \in F[x]$, let $d(x) = \gcd(a(x), b(x))$. There exist polynomials $s(x)$ and $t(x)$ such that:</p>
+      $$ a(x)s(x) + b(x)t(x) = d(x) $$
+    </div>
+    
+    <p>If $a(x)$ and $b(x)$ are coprime (their GCD is 1), then $a(x)s(x) + b(x)t(x) = 1$. This equation is computationally essential for finding multiplicative inverses in quotient rings, which is required to construct field extensions and perform cryptographic operations in Galois Fields.</p>
+
+    <h2>Resultants and the Discriminant</h2>
+    <p>How can we tell if two polynomials share a common root without explicitly finding their roots? The <strong>Resultant</strong> is an algebraic tool that computes a single number (or polynomial) from the coefficients of two polynomials, $f(x)$ and $g(x)$. The resultant is zero if and only if $f$ and $g$ share a root.</p>
+    <div class="definition-box">
+      <div class="def-title">Sylvester Matrix</div>
+      <p>The resultant is calculated as the determinant of the <em>Sylvester Matrix</em>, a square matrix formed by staggering the coefficients of $f(x)$ and $g(x)$.</p>
+    </div>
+    <p>A vital application of the resultant is the <strong>Discriminant</strong>, $\Delta$, of a polynomial $f(x)$. It is defined in terms of the resultant of $f(x)$ and its derivative $f'(x)$. If the discriminant is zero, it means the polynomial shares a root with its own derivative—indicating the presence of a <em>multiple root</em> (a root with multiplicity greater than 1).</p>
+    
+    <h2>Synthetic Division and Horner's Method</h2>
+    <p>While long division is theoretically robust, evaluating polynomials and dividing by linear terms <i>(x - c)</i> can be computationally expensive. <strong>Horner's Method</strong> drastically optimizes this process.</p>
+    
+    <p>Instead of calculating powers of <i>x</i> (which requires <i>O(n²)</i> multiplications naively), Horner's method rewrites a polynomial by repeatedly factoring out <i>x</i>:</p>
+    
+    <div class="math-display">
+      a₃x³ + a₂x² + a₁x + a₀ = ((a₃x + a₂)x + a₁)x + a₀
+    </div>
+    
+    <p>This reduces polynomial evaluation to exactly <i>n</i> multiplications and <i>n</i> additions. Furthermore, the intermediate values generated during Horner's evaluation are exactly the coefficients of the quotient <i>q(x)</i> when dividing by <i>(x - c)</i>. This algorithmic equivalence is known in educational contexts as <strong>Synthetic Division</strong>.</p>
+  </div>
+</div>
+
+  <div class="tab-panel" id="tab-geometry">
+    <div class="content-body">
+      <h2>
+        Polynomials as Geometric Architectures
+      </h2>
+      <p>
+        In classical algebra, we view polynomials as functions or abstract ring elements. In <strong>Algebraic Geometry</strong>, we view sets of polynomials as the fundamental building blocks of geometric spaces. By defining equations in multiple variables, we carve out shapes called <em>Algebraic Varieties</em>.
+      </p>
+    
+      <h3>
+        Affine Space and Varieties
+      </h3>
+      <p>
+        Let <b>K</b> be an algebraically closed field (like the complex numbers, <b>C</b>). The <i>n</i>-dimensional affine space, denoted <b>A</b><sup>n</sup>, is simply the set of all <i>n</i>-tuples of elements from <b>K</b>. 
+      </p>
+      <p>
+        If we take a set of polynomials <i>S</i> &subseteq; <b>K</b>[x₁, ..., xₙ], we define the <strong>Affine Variety</strong> <i>V(S)</i> as the set of all points in <b>A</b><sup>n</sup> where every polynomial in <i>S</i> evaluates to exactly zero. 
+      </p>
+    
+      <div class="definition-box">
+        <div class="def-title">
+          The Zero Locus
+        </div>
+        <p>
+          <i>V(S) = { (a₁, ..., aₙ) &in; <b>A</b><sup>n</sup> | f(a₁, ..., aₙ) = 0 for all f &in; S }</i>
+        </p>
+        <p>
+          Crucially, the variety defined by a set of polynomials <i>S</i> is exactly the same as the variety defined by the <em>Ideal</em> generated by <i>S</i>. Geometry is dictated by ideals, not just individual equations.
+        </p>
+      </div>
+
+      <h3>
+        The Zariski Topology
+      </h3>
+      <p>
+        We can define a completely new kind of geometry by declaring that the "closed sets" of our space are exactly the affine varieties. This forms the <strong>Zariski Topology</strong>. 
+      </p>
+      <ul>
+        <li>
+          The empty set and the whole space are varieties.
+        </li>
+        <li>
+          The intersection of any collection of varieties is a variety.
+        </li>
+        <li>
+          The union of any <em>finite</em> number of varieties is a variety.
+        </li>
+      </ul>
+      <p>
+        Unlike the standard Euclidean topology, the Zariski topology is extremely "coarse." Two non-empty open sets almost always intersect. This strangeness perfectly captures the rigid, global nature of polynomial equations.
+      </p>
+
+      <div class="theorem-box">
+        <div class="theo-title">
+          Hilbert's Nullstellensatz (Theorem of Zeros)
+        </div>
+        <p>
+          The Nullstellensatz is the foundational dictionary between algebra and geometry. It states that if a polynomial <i>f</i> vanishes on the variety defined by an ideal <i>I</i>, then some power of <i>f</i> must belong to <i>I</i>.
+        </p>
+        <p>
+          Formally: <i>I(V(J)) = &radic;J</i> (The ideal of the variety of <i>J</i> equals the radical of <i>J</i>). This creates a bijective correspondence between <em>radical ideals</em> in the polynomial ring and <em>affine varieties</em> in space.
+        </p>
+      </div>
+
+      <h3>
+        Coordinate Rings
+      </h3>
+      <p>
+        If <i>V</i> is a variety defined by an ideal <i>I</i>, we can study the functions that live <em>on</em> that variety. Two polynomials act identically on <i>V</i> if their difference belongs to <i>I</i>. 
+      </p>
+      <p>
+        Therefore, the ring of polynomial functions on <i>V</i> is the quotient ring: 
+        <b>K</b>[V] = <b>K</b>[x₁, ..., xₙ] / <i>I</i>. 
+        This is called the <strong>Coordinate Ring</strong> of the variety. The entire geometric structure of the variety is encoded algebraically in this ring.
+      </p>
+
+      <h3>
+        Projective Space and Points at Infinity
+      </h3>
+      <p>
+        Affine geometry has a fatal flaw: parallel lines never intersect, which creates exceptions in geometric theorems. Algebraic geometry solves this by embedding affine space into <strong>Projective Space</strong>, denoted <b>P</b><sup>n</sup>. We add "points at infinity" where parallel lines are forced to meet.
+      </p>
+    
+      <p>
+        To work in projective space, polynomials must be <em>homogeneous</em>—every term must have the exact same total degree. For example, the affine curve <i>y = x² + 1</i> becomes the projective curve <i>yz = x² + z²</i>. This homogenization elegantly closes the space.
+      </p>
+
+      <div class="theorem-box">
+        <div class="theo-title">
+          Bezout's Theorem (Projective Geometry)
+        </div>
+        <p>
+          In the complex projective plane <b>P</b>², any two algebraic curves defined by homogeneous polynomials of degree <i>m</i> and degree <i>n</i> that do not share a common component will intersect in exactly <i>m &times; n</i> points (when counted with intersection multiplicity). This theorem is beautiful because there are no exceptions—parallel lines intersect at infinity, and imaginary intersections are accounted for by the complex numbers.
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="tab-panel" id="tab-orthogonal">
+    <div class="content-body">
+      <h2>
+        Orthogonal Polynomials and Function Spaces
+      </h2>
+      <p>
+        Moving from abstract rings to functional analysis, we can treat polynomials as vectors residing in infinite-dimensional vector spaces. By defining an <strong>Inner Product</strong> (a generalization of the dot product) via integration, we can measure the "angle" and "length" of polynomials.
+      </p>
+
+      <h3>
+        The Inner Product Space
+      </h3>
+      <p>
+        Let <i>V</i> be the vector space of all polynomials with real coefficients. We define an inner product over an interval [a, b] with a weight function <i>w(x) &gt; 0</i>:
+      </p>
+      <div class="math-display">
+        &lang; f, g &rang; = &int;<sub>a</sub><sup>b</sup> f(x) g(x) w(x) dx
+      </div>
+      <p>
+        Two polynomials are <strong>orthogonal</strong> if their inner product is zero (&lang; f, g &rang; = 0). Using the Gram-Schmidt orthogonalization process on the standard basis {1, x, x², x³, ...}, we can generate sequences of orthogonal polynomials.
+      </p>
+
+      <div class="step-card">
+        <div class="step-num">
+          1
+        </div>
+        <div class="step-content">
+          <h3>
+            Legendre Polynomials
+          </h3>
+          <p>
+            <strong>Interval:</strong> [-1, 1]<br>
+            <strong>Weight function:</strong> <i>w(x) = 1</i>
+          </p>
+          <p>
+            These arise naturally when solving Laplace's equation in spherical coordinates. The first few are:
+          </p>
+          <ul>
+            <li>
+              <i>P₀(x) = 1</i>
+            </li>
+            <li>
+              <i>P₁(x) = x</i>
+            </li>
+            <li>
+              <i>P₂(x) = (3x² - 1) / 2</i>
+            </li>
+            <li>
+              <i>P₃(x) = (5x³ - 3x) / 2</i>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">
+          2
+        </div>
+        <div class="step-content">
+          <h3>
+            Chebyshev Polynomials (First Kind)
+          </h3>
+          <p>
+            <strong>Interval:</strong> [-1, 1]<br>
+            <strong>Weight function:</strong> <i>w(x) = 1 / &radic;(1 - x²)</i>
+          </p>
+          <p>
+            Defined trigonometrically as <i>Tₙ(x) = cos(n arccos(x))</i>. These polynomials are famous in approximation theory because they minimize the maximum error (the minimax property) when interpolating functions. The roots of Chebyshev polynomials are clustered near the edges of the interval, preventing Runge's phenomenon.
+          </p>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">
+          3
+        </div>
+        <div class="step-content">
+          <h3>
+            Hermite Polynomials
+          </h3>
+          <p>
+            <strong>Interval:</strong> (-&infin;, &infin;)<br>
+            <strong>Weight function:</strong> <i>w(x) = e<sup>-x²</sup></i>
+          </p>
+          <p>
+            Because the interval is the entire real line, the rapidly decaying exponential weight is required to ensure the integrals converge. Hermite polynomials are the eigenfunctions of the quantum harmonic oscillator, describing the discrete energy levels of molecules.
+          </p>
+        </div>
+      </div>
+
+      <h3>
+        The Three-Term Recurrence Relation
+      </h3>
+      <p>
+        A beautiful unifying theorem of orthogonal polynomials states that <em>any</em> sequence of orthogonal polynomials {<i>Pₙ(x)</i>} satisfies a three-term recurrence relation:
+      </p>
+      <div class="math-display">
+        Pₙ₊₁(x) = (Aₙ x + Bₙ) Pₙ(x) - Cₙ Pₙ₋₁(x)
+      </div>
+      <p>
+        This allows for the incredibly fast computational generation of orthogonal bases without needing to evaluate massive factorial combinations or perform explicit numerical integration.
+      </p>
+
+    <h3>
+      Gaussian Quadrature
+    </h3>
+    <p>
+      One of the most powerful applications of orthogonal polynomials is in numerical integration. If we want to approximate the integral of an arbitrary function <i>f(x)</i>, we evaluate the function at a set of specific points and sum them with specific weights.
+    </p>
+    
+    <div class="definition-box">
+      <div class="def-title">
+        Optimal Integration Nodes
+      </div>
+      <p>
+        If we choose our sampling nodes to be exactly the roots of the <i>n</i>-th orthogonal polynomial associated with the weight function <i>w(x)</i>, the resulting integration rule will be perfectly exact for all polynomials up to degree <i>2n - 1</i>. This provides double the accuracy of standard Newton-Cotes formulas (like the Trapezoidal rule) for the same computational effort.
+      </p>
+    </div>
+
+    </div>
+  </div>
+
+  <div class="tab-panel" id="tab-complexity">
+    <div class="content-body">
+      <h2>
+        Polynomials in Computational Complexity
+      </h2>
+      <p>
+        In theoretical computer science, polynomials transcend geometry and algebra to become the definitive boundary between the computationally <em>tractable</em> and the <em>intractable</em>. We use polynomials to measure how algorithms scale as the size of the input data grows.
+      </p>
+
+      <h3>
+        The Class P (Polynomial Time)
+      </h3>
+      <p>
+        An algorithm is said to run in <strong>polynomial time</strong> if its running time is upper-bounded by a polynomial expression of the input size <i>n</i>. Formally, the time complexity is <i>O(n<sup>k</sup>)</i> for some non-negative integer <i>k</i>.
+      </p>
+    
+      <div class="definition-box">
+        <div class="def-title">
+          The Cobham-Edmonds Thesis
+        </div>
+        <p>
+          This thesis posits that computational problems can be feasibly computed on a practical, real-world machine if and only if they can be computed in polynomial time. While <i>O(n¹⁰⁰)</i> is technically a polynomial and practically impossible, in reality, polynomial-time algorithms almost always have small exponents like <i>O(n)</i>, <i>O(n²)</i>, or <i>O(n³)</i>.
+        </p>
+      </div>
+
+      <ul>
+        <li>
+          <strong>Sorting a list:</strong> <i>O(n log n)</i>, which is bounded by <i>O(n²)</i> &mdash; efficiently solvable.
+        </li>
+        <li>
+          <strong>Multiplying matrices:</strong> <i>O(n³)</i> (or roughly <i>O(n².³⁷)</i> with optimized algorithms) &mdash; efficiently solvable.
+        </li>
+        <li>
+          <strong>Finding the greatest common divisor:</strong> The Euclidean algorithm runs in polynomial time relative to the number of digits.
+        </li>
+      </ul>
+
+      <h3>
+        The Class NP (Nondeterministic Polynomial Time)
+      </h3>
+      <p>
+        The class <strong>NP</strong> consists of decision problems for which a proposed "yes" answer can be <em>verified</em> by a deterministic Turing machine in polynomial time. 
+      </p>
+      <p>
+        For example, factoring a massive integer into primes is not known to be in P. However, if someone hands you the prime factors, you can multiply them together in polynomial time to verify the answer. Thus, Integer Factorization is in NP.
+      </p>
+
+      <div class="warning-box">
+        <div class="warn-title">
+          The P vs NP Millennium Prize Problem
+        </div>
+        <p>
+          If a problem's solution can be quickly verified (in polynomial time), can it also be quickly found (in polynomial time)? This asks if P = NP. 
+        </p>
+        <p>
+          Whether P equals NP is the most significant open problem in theoretical computer science. <strong>For this specific part, I don't know</strong> the answer, as determining if non-deterministic polynomial time bounds can be deterministically collapsed remains unproven. If P = NP, it would mean that creative generation (finding a proof, breaking encryption) is fundamentally no harder than mechanical verification.
+        </p>
+      </div>
+
+      <h3>
+        Polynomial Reductions
+      </h3>
+      <p>
+        To compare the difficulty of problems, computer scientists use <strong>polynomial-time reductions</strong>. If problem A can be translated into problem B in polynomial time, then B is at least as hard as A. If we can solve B quickly, we can solve A quickly. 
+      </p>
+      <p>
+        A problem is <strong>NP-Complete</strong> if it is in NP, and <em>every</em> other problem in NP can be reduced to it in polynomial time. The Boolean Satisfiability Problem (SAT) was the first problem proven to be NP-Complete (Cook-Levin Theorem).
+      </p>
+
+    <h3>
+      Polynomial Identity Testing (PIT)
+    </h3>
+    <p>
+      Consider the problem of determining whether two complex multivariate polynomial expressions are equivalent, or equivalently, if a single polynomial expression evaluates to the constant zero function. This is known as Polynomial Identity Testing.
+    </p>
+    
+    <p>
+      If we expand the polynomial, it could result in exponentially many terms. However, we can solve this highly efficiently using a randomized algorithm based on the <strong>Schwartz-Zippel Lemma</strong>. By plugging in random values from a sufficiently large finite field, a non-zero polynomial will almost never evaluate to zero. Therefore, if the evaluation is zero, we can say with extremely high probability that the polynomial is the zero polynomial.
+    </p>
+
+    <div class="warning-box">
+      <div class="warn-title">
+        The Derandomization Frontier
+      </div>
+      <p>
+        While randomized polynomial time (the class BPP) easily solves PIT, <strong>For this specific part, I don't know</strong> if a deterministic polynomial-time algorithm exists. Finding a deterministic algorithm for PIT is equivalent to proving strong computational lower bounds, making it one of the most heavily researched frontiers bridging algebraic geometry and computer science.
+      </p>
+    </div>
+
+    </div>
+  </div>
+
+    <div class="tab-panel" id="tab-essence">
+    <div class="content-body">
+      <h2>
+        The Absolute Essence: Why Polynomials?
+      </h2>
+      <p>
+        Throughout this document, we have used polynomials to build complex numbers, correct satellite data, encode cryptographic keys, and define geometries. But why polynomials? Why does this specific structure—sums of integer powers multiplied by coefficients—hold such an absolute monopoly over the architecture of mathematics?
+      </p>
+
+      <h3>
+        The Axiomatic Minimum: Addition and Multiplication
+      </h3>
+      <p>
+        At the lowest level of mathematical reality, we possess only two primitive, constructive operations: addition and multiplication. Everything else is a derivative concept. Subtraction and division are just the inverses of addition and multiplication. Exponentiation is just repeated multiplication.
+      </p>
+      <p>
+        If you take a field $F$, introduce a completely blank, rule-less placeholder symbol $x$, and ask the universe: <em>"What is the most general object I can build using only my two primitive operations in a finite number of steps?"</em>, the answer is exactly the polynomial ring $F[x]$.
+      </p>
+      <p>
+        Polynomials are what you get when you apply the axioms of arithmetic to an unknown quantity, making no assumptions whatsoever about what that quantity is.
+      </p>
+
+      <div class="step-card">
+        <div class="step-num">
+          &#8734;
+        </div>
+        <div class="step-content">
+          <h3>
+            The Illusion of Transcendental Functions
+          </h3>
+          <p>
+            We often think of functions like $\sin(x)$, $e^x$, or $\ln(x)$ as fundamental. But from a purely computational standpoint, they are fictions. No computer, and no human brain, can exactly compute $\sin(x)$ using arithmetic for an arbitrary $x$. 
+          </p>
+          <p>
+            To evaluate them, we are forced to approximate them using Taylor series—which are simply polynomials. <strong>Polynomials are the only continuous functions in the universe that can be exactly computed in a finite number of steps.</strong> Every other smooth function you have ever learned is just a polynomial taken to an infinite limit.
+          </p>
+        </div>
+      </div>
+
+      <h3>
+        Category Theory: The Free Algebra
+      </h3>
+      <p>
+        In Category Theory—the mathematics of mathematical structures—polynomials hold a sacred position. The polynomial ring $R[x]$ is known as the <strong>Free Commutative Algebra</strong> generated by a single element. 
+      </p>
+    
+      <div class="definition-box">
+        <div class="def-title">
+          The Universal Property of $R[x]$
+        </div>
+        <p>
+          Let $R$ be a ring, and let $A$ be any commutative $R$-algebra. If you pick absolutely any element $a \in A$, there exists exactly one, unique algebra homomorphism $\phi: R[x] \to A$ such that $\phi(x) = a$.
+        </p>
+      </div>
+    
+      <p>
+        This Universal Property means that $R[x]$ is the "mother of all rings." Because $x$ has no inherent properties, it can be seamlessly mapped onto <em>anything</em>. Every single finitely generated commutative ring in existence is isomorphic to a quotient of some polynomial ring $R[x_1, \dots, x_n] / I$. 
+      </p>
+      <p>
+        You cannot invent a new algebraic system that bypasses polynomials, because the polynomial ring is definitionally the blueprint from which all other algebraic systems are carved.
+      </p>
+
+      <h3>
+        The Bridge Between Discrete and Continuous
+      </h3>
+      <p>
+        Polynomials represent a profound duality. On one hand, a polynomial $f(x) = a_0 + a_1 x + \dots + a_n x^n$ is completely defined by a <strong>discrete</strong>, finite list of coefficients: $(a_0, a_1, \dots, a_n)$. This list is rigid, algebraic, and combinatoric.
+      </p>
+      <p>
+        On the other hand, when evaluated over $R$ or $C$, $f(x)$ produces a perfectly <strong>continuous</strong>, smooth geometric curve. 
+      </p>
+    
+      <p>
+        Polynomials are the Rosetta Stone translating the discrete world of algebra into the continuous world of topology and geometry. You can take a derivative (a continuous limit concept) simply by shifting the discrete coefficients: $a_k \to k \cdot a_k$.
+      </p>
+
+      <div class="warning-box">
+        <div class="warn-title">
+          The Limits of Polynomial Ontology
+        </div>
+        <p>
+          Given that polynomials are the universal language of finite algebraic operations, one might assume they are the absolute foundational layer of all possible geometries. However, in modern developments like Tropical Geometry (where addition becomes minimum, and multiplication becomes addition), the traditional ring axioms are broken, leading to piecewise-linear "shadows" of algebraic varieties. 
+        </p>
+        <p>
+          Could there be a non-polynomial foundation for mathematics that entirely replaces the ring axioms while still allowing for the construction of coherent, continuous geometric spaces? <strong>For this specific part, I don't know</strong> if it is mathematically possible to decouple geometry from the polynomial ring structure without losing the concept of dimension and smoothness entirely, as human mathematics relies so heavily on locally Euclidean spaces parameterized by polynomial coordinates.
+        </p>
+      </div>
+
+      <h3>
+        Conclusion
+      </h3>
+      <p>
+        Why are polynomials what they are? Because they are the purest manifestation of algebraic freedom. They are the simplest objects that can be added and multiplied, yet they are powerful enough to encode the rules of encryption, the symmetries of nature, and the limits of computation. They are not just equations; they are the DNA of abstract mathematics.
+      </p>
+
+    </div>
+  </div>
+
+    <div class="tab-panel" id="tab-glossary">
+  <div class="content-body">
+    <h2>Algebraic Glossary</h2>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Ring</div>
+      <div class="gloss-def">An algebraic structure with addition and multiplication. Addition forms an abelian group, multiplication is associative, and multiplication distributes over addition. E.g., The integers $\mathbb{Z}$.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Field</div>
+      <div class="gloss-def">A commutative ring where every non-zero element has a multiplicative inverse. Division (except by zero) is possible. E.g., $\mathbb{Q}, \mathbb{R}, \mathbb{C}, \mathbb{F}_p$.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Indeterminate</div>
+      <div class="gloss-def">A formal symbol (usually $x$) used to construct polynomial rings. Unlike a "variable", an indeterminate does not inherently represent a value to be substituted; it is a structural placeholder for sequences of coefficients.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Ideal</div>
+      <div class="gloss-def">A subset $I$ of a ring $R$ that forms an additive subgroup and "absorbs" multiplication by elements of $R$. If $r \in R$ and $x \in I$, then $rx \in I$.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Monic Polynomial</div>
+      <div class="gloss-def">A polynomial whose leading coefficient (the coefficient of the highest degree term) is exactly $1$.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Irreducible Polynomial</div>
+      <div class="gloss-def">A polynomial that cannot be factored into the product of two non-constant polynomials over the given field. It is the polynomial analog to a prime number.</div>
+    </div>
+    
+    <div class="gloss-item">
+      <div class="gloss-term">Eisenstein's Criterion</div>
+      <div class="gloss-def">A theorem providing a sufficient condition for a polynomial with integer coefficients to be irreducible over the rationals $\mathbb{Q}$. It looks for a prime $p$ that divides all coefficients except the leading one, and where $p^2$ does not divide the constant term.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Unique Factorization Domain (UFD)</div>
+      <div class="gloss-def">An integral domain in which every non-zero, non-unit element can be written as a product of irreducible elements, uniquely up to order and units.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Transcendental Element</div>
+      <div class="gloss-def">An element in a field extension that is not the root of any non-zero polynomial with coefficients in the base field.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Cyclotomic Polynomial</div>
+      <div class="gloss-def">A polynomial whose roots are the primitive $n$-th roots of unity. They have integer coefficients and are irreducible over the rationals.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Gröbner Basis</div>
+      <div class="gloss-def">A specific, highly structured generating set of an ideal in a multivariate polynomial ring. It allows for a well-defined multivariate division algorithm and solves the ideal membership problem.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Galois Field</div>
+      <div class="gloss-def">A finite field, which must have an order (size) equal to a prime power $p^n$. Its arithmetic is governed by polynomial arithmetic modulo an irreducible polynomial of degree $n$ over $\mathbb{F}_p$.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">
+        Affine Variety
+      </div>
+      <div class="gloss-def">
+        The set of common zeros of a collection of polynomials in an algebraically closed field. It forms the central object of study in classical algebraic geometry.
+      </div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">
+        Zariski Topology
+      </div>
+      <div class="gloss-def">
+        A topology applied to affine space where the closed sets are defined exclusively as algebraic varieties. It is a very coarse topology compared to the metric topology.
+      </div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">
+        Hilbert's Nullstellensatz
+      </div>
+      <div class="gloss-def">
+        A foundational theorem linking geometry and algebra, proving that the ideal of polynomials vanishing on a variety <i>V(J)</i> is exactly the radical of the ideal <i>J</i>.
+      </div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">
+        Orthogonal Polynomials
+      </div>
+      <div class="gloss-def">
+        A sequence of polynomials that are orthogonal to each other under a specific inner product defined by a definite integral and a weight function over a continuous interval.
+      </div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">
+        Weight Function
+      </div>
+      <div class="gloss-def">
+        A strictly positive mathematical function <i>w(x)</i> used to modify the inner product integral for orthogonal polynomials, ensuring convergence and setting specific domain bounds.
+      </div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">
+        Complexity Class P
+      </div>
+      <div class="gloss-def">
+        The set of all decision problems solvable by a deterministic Turing machine in a number of steps that is bounded by a polynomial function of the input size.
+      </div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">
+        Polynomial-time Reduction
+      </div>
+      <div class="gloss-def">
+        An algorithm running in polynomial time that transforms instances of one computational problem into instances of another, establishing a hierarchy of problem difficulty.
+      </div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">
+        Formal Derivative
+      </div>
+      <div class="gloss-def">
+        An operation acting on polynomials that mimics the calculus derivative <i>(xⁿ &rarr; n xⁿ⁻¹)</i> but is defined purely through algebraic manipulation of coefficients, requiring no concept of limits.
+      </div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">
+        Frobenius Endomorphism
+      </div>
+      <div class="gloss-def">
+        A fundamental mapping in rings of prime characteristic <i>p</i>, defined by raising elements to the <i>p</i>-th power. It distributes perfectly over addition due to the vanishing of intermediate binomial coefficients.
+      </div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">
+        Projective Space
+      </div>
+      <div class="gloss-def">
+        A geometric space constructed by appending "points at infinity" to affine space, allowing all parallel lines to intersect and simplifying theorem structures like Bezout's Theorem.
+      </div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">
+        Schwartz-Zippel Lemma
+      </div>
+      <div class="gloss-def">
+        A probabilistic lemma bounding the number of roots a multivariate polynomial can have. It proves that evaluating a non-zero polynomial at random points will almost always yield a non-zero result.
+      </div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">
+        Free Algebra
+      </div>
+      <div class="gloss-def">
+        An algebraic structure that is not constrained by any relations or equations beyond the core axioms of its type. The polynomial ring is the free commutative algebra, acting as a universal template.
+      </div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">
+        Universal Property
+      </div>
+      <div class="gloss-def">
+        A concept from category theory describing an object that provides the most efficient, unique pathway (homomorphism) to map its structure onto any other object in that same category.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ═════════════ JAVASCRIPT LOGIC ═════════════ */
+// Application State
+const STATE = {
+  degree: 2, // Default Quadratic
+  coeffs: [0, 0, 1, 0, 0, 0], // a0, a1, a2, a3, a4, a5
+  zoom: 1.0,
+  minX: -10,
+  maxX: 10,
+  minY: -10,
+  maxY: 10
+};
+
+// Coefficient presets for visually interesting curves
+const PRESETS = {
+  0: [0, 0, 1, 0, 0, 0],       // y = x^2
+  1: [0, -4, 0, 1, 0, 0],      // y = x^3 - 4x
+  2: [0, 0, -5, 0, 1, 0],      // y = x^4 - 5x^2
+  3: [0, 5, 0, -5, 0, 1]       // y = x^5 - 5x^3 + 5x
+};
+
+/* ═════════════ MATH & POLYNOMIAL LOGIC ═════════════ */
+
+// Evaluate polynomial at x using Horner's Method
+function evalPoly(x, coeffs, degree) {
+  let result = coeffs[degree];
+  for (let i = degree - 1; i >= 0; i--) {
+    result = result * x + coeffs[i];
+  }
+  return result;
+}
+
+// Compute derivative coefficients
+function getDerivative(coeffs, degree) {
+  let deriv = new Array(6).fill(0);
+  for (let i = 1; i <= degree; i++) {
+    deriv[i - 1] = coeffs[i] * i;
+  }
+  return deriv;
+}
+
+// Evaluate derivative at x
+function evalDeriv(x, coeffs, degree) {
+  const derivCoeffs = getDerivative(coeffs, degree);
+  let newDeg = Math.max(0, degree - 1);
+  return evalPoly(x, derivCoeffs, newDeg);
+}
+
+// Find Real Roots via Bisection & Newton-Raphson
+function findRealRoots(coeffs, degree) {
+  const roots = [];
+  const steps = 200;
+  const dx = (STATE.maxX - STATE.minX) / steps;
+  
+  // Sweep to find sign changes
+  for (let i = 0; i < steps; i++) {
+    let x1 = STATE.minX + i * dx;
+    let x2 = x1 + dx;
+    let y1 = evalPoly(x1, coeffs, degree);
+    let y2 = evalPoly(x2, coeffs, degree);
+    
+    if (y1 * y2 <= 0) {
+      // Sign change detected, zoom in with Newton's Method
+      let guess = (x1 + x2) / 2;
+      let root = newtonRaphson(guess, coeffs, degree);
+      if (root !== null) {
+        // Prevent duplicates
+        let isDup = roots.some(r => Math.abs(r - root) < 1e-4);
+        if (!isDup && root >= STATE.minX && root <= STATE.maxX) {
+          roots.push(root);
+        }
+      }
+    }
+  }
+  return roots.sort((a,b)=>a-b);
+}
+
+function newtonRaphson(guess, coeffs, degree) {
+  let x = guess;
+  const maxIter = 50;
+  const tol = 1e-7;
+  
+  for (let i = 0; i < maxIter; i++) {
+    let y = evalPoly(x, coeffs, degree);
+    let dy = evalDeriv(x, coeffs, degree);
+    
+    if (Math.abs(y) < tol) return x;
+    if (Math.abs(dy) < 1e-10) break; // Local min/max, NR fails
+    
+    x = x - (y / dy);
+  }
+  return null;
+}
+
+
+/* ═════════════ CANVAS RENDERING ═════════════ */
+
+const cv = document.getElementById('polyCanvas');
+const ctx = cv.getContext('2d');
+const W = cv.width;
+const H = cv.height;
+
+// Convert math coords to canvas coords
+function toCanvas(mx, my) {
+  const cw = STATE.maxX - STATE.minX;
+  const ch = STATE.maxY - STATE.minY;
+  const cx = ((mx - STATE.minX) / cw) * W;
+  const cy = H - ((my - STATE.minY) / ch) * H; // Invert Y
+  return [cx, cy];
+}
+
+function drawGridAndAxes(styleProps) {
+  ctx.clearRect(0, 0, W, H);
+  
+  // Grid
+  ctx.strokeStyle = styleProps.gridColor;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  
+  // Vertical grid lines
+  for (let x = Math.ceil(STATE.minX); x <= Math.floor(STATE.maxX); x++) {
+    let [cx, cyTop] = toCanvas(x, STATE.maxY);
+    let [, cyBot] = toCanvas(x, STATE.minY);
+    ctx.moveTo(cx, cyTop);
+    ctx.lineTo(cx, cyBot);
+  }
+  // Horizontal grid lines
+  for (let y = Math.ceil(STATE.minY); y <= Math.floor(STATE.maxY); y++) {
+    let [cxLeft, cy] = toCanvas(STATE.minX, y);
+    let [cxRight, ] = toCanvas(STATE.maxX, y);
+    ctx.moveTo(cxLeft, cy);
+    ctx.lineTo(cxRight, cy);
+  }
+  ctx.stroke();
+
+  // Axes
+  ctx.strokeStyle = styleProps.axisColor;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  // X-Axis
+  if (STATE.minY <= 0 && STATE.maxY >= 0) {
+    let [cxL, cy0] = toCanvas(STATE.minX, 0);
+    let [cxR, ] = toCanvas(STATE.maxX, 0);
+    ctx.moveTo(cxL, cy0);
+    ctx.lineTo(cxR, cy0);
+  }
+  // Y-Axis
+  if (STATE.minX <= 0 && STATE.maxX >= 0) {
+    let [cx0, cyT] = toCanvas(0, STATE.maxY);
+    let [, cyB] = toCanvas(0, STATE.minY);
+    ctx.moveTo(cx0, cyT);
+    ctx.lineTo(cx0, cyB);
+  }
+  ctx.stroke();
+  
+  // Axis numbers
+  ctx.fillStyle = styleProps.textColor;
+  ctx.font = '12px JetBrains Mono';
+  let [ox, oy] = toCanvas(0, 0);
+  ctx.fillText("0", ox + 5, oy - 5);
+}
+
+function plotCurve(fnCoeffs, fnDegree, color, width, dash = []) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.setLineDash(dash);
+  ctx.beginPath();
+  
+  let started = false;
+  const segments = 400;
+  const dx = (STATE.maxX - STATE.minX) / segments;
+  
+  for (let i = 0; i <= segments; i++) {
+    let mx = STATE.minX + i * dx;
+    let my = evalPoly(mx, fnCoeffs, fnDegree);
+    
+    // Discard huge values to prevent canvas lag
+    if (my > STATE.maxY * 5 || my < STATE.minY * 5) {
+      started = false;
+      continue;
+    }
+    
+    let [cx, cy] = toCanvas(mx, my);
+    if (!started) {
+      ctx.moveTo(cx, cy);
+      started = true;
+    } else {
+      ctx.lineTo(cx, cy);
+    }
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawScene() {
+  const rs = getComputedStyle(document.documentElement);
+  const styleProps = {
+    gridColor: rs.getPropertyValue('--grid-line').trim(),
+    axisColor: rs.getPropertyValue('--ax-line').trim(),
+    textColor: rs.getPropertyValue('--ax-text').trim(),
+    mainColor: rs.getPropertyValue('--curve-main').trim(),
+    derivColor: rs.getPropertyValue('--curve-deriv').trim(),
+  };
+
+  drawGridAndAxes(styleProps);
+  
+  // Draw Derivative (Dashed)
+  const derivCoeffs = getDerivative(STATE.coeffs, STATE.degree);
+  const derivDeg = Math.max(0, STATE.degree - 1);
+  plotCurve(derivCoeffs, derivDeg, styleProps.derivColor, 2, [5, 5]);
+
+  // Draw Main Polynomial
+  plotCurve(STATE.coeffs, STATE.degree, styleProps.mainColor, 3);
+  
+  // Plot Roots
+  const roots = findRealRoots(STATE.coeffs, STATE.degree);
+  ctx.fillStyle = rs.getPropertyValue('--ink').trim();
+  roots.forEach(r => {
+    let [cx, cy] = toCanvas(r, 0);
+    ctx.beginPath();
+    ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = styleProps.mainColor;
+    ctx.stroke();
+  });
+  
+  // Update Root Text
+  const rootDisp = document.getElementById('rootsDisplay');
+  if (roots.length === 0) {
+    rootDisp.innerHTML = "No real roots in current view.";
+  } else {
+    rootDisp.innerHTML = roots.map((r, i) => `r<sub>${i+1}</sub> = ${r.toFixed(3)}`).join('<br>');
+  }
+}
+
+/* ═════════════ UI & CONTROLS ═════════════ */
+
+function generateSliders() {
+  const container = document.getElementById('coefControls');
+  container.innerHTML = '<div class="ctrl-head">Coefficients (a₀ to aₙ)</div>';
+  
+  for (let i = STATE.degree; i >= 0; i--) {
+    const block = document.createElement('div');
+    block.className = 'slider-block';
+    
+    const labelRow = document.createElement('div');
+    labelRow.className = 'slider-label';
+    labelRow.innerHTML = `<span>a<sub>${i}</sub> (x<sup>${i}</sup>)</span> <span class="sval" id="val_a${i}">${STATE.coeffs[i]}</span>`;
+    
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = -10;
+    slider.max = 10;
+    slider.step = 0.1;
+    slider.value = STATE.coeffs[i];
+    
+    slider.addEventListener('input', (e) => {
+      STATE.coeffs[i] = parseFloat(e.target.value);
+      document.getElementById(`val_a${i}`).textContent = STATE.coeffs[i].toFixed(1);
+      drawScene();
+    });
+    
+    block.appendChild(labelRow);
+    block.appendChild(slider);
+    container.appendChild(block);
+  }
+}
+
+// Polynomial Degree Selection
+document.querySelectorAll('#polySelector .grp-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    document.querySelectorAll('#polySelector .grp-btn').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    
+    let polyType = parseInt(e.target.dataset.poly);
+    STATE.degree = polyType + 2; // 0->2 (Quad), 1->3 (Cubic), etc.
+    STATE.coeffs = [...PRESETS[polyType]];
+    
+    generateSliders();
+    drawScene();
+  });
+});
+
+// Zoom Slider
+document.getElementById('zoomSlider').addEventListener('input', (e) => {
+  STATE.zoom = parseFloat(e.target.value);
+  document.getElementById('zoomVal').textContent = STATE.zoom.toFixed(1) + 'x';
+  
+  let baseSpan = 10;
+  let newSpan = baseSpan / STATE.zoom;
+  STATE.minX = -newSpan;
+  STATE.maxX = newSpan;
+  STATE.minY = -newSpan;
+  STATE.maxY = newSpan;
+  
+  drawScene();
+});
+
+// Tabbing System
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// Theme System
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const root = document.documentElement;
+  if (root.getAttribute('data-theme') === 'dark') {
+    root.removeAttribute('data-theme');
+  } else {
+    root.setAttribute('data-theme', 'dark');
+  }
+  // Redraw canvas with new colors
+  setTimeout(drawScene, 50); 
+});
+
+/* ═════════════ INITIALIZATION ═════════════ */
+window.onload = () => {
+  STATE.coeffs = [...PRESETS[0]]; // Start with Quad
+  generateSliders();
+  drawScene();
+};
+
+</script>
+</body>
+</html>

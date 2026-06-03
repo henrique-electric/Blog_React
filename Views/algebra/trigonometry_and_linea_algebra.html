@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trigonometry & Linear Algebra — A Visual Journey</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Mono:wght@300;400;500&family=Crimson+Pro:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0c0c0e;
+    --surface: #111115;
+    --card: #16161c;
+    --border: #2a2a35;
+    --accent: #e8c96d;
+    --accent2: #7eb8f7;
+    --accent3: #f07a7a;
+    --accent4: #a882dd;
+    --text: #d8d4cc;
+    --muted: #6e6b62;
+    --bright: #f0ece4;
+  }
+
+  * { 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+  }
+
+  html { 
+    scroll-behavior: smooth; 
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-size: 19px; 
+    line-height: 1.8;
+    overflow-x: hidden;
+  }
+
+  /* ── NOISE TEXTURE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 4rem 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(232,201,109,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232,201,109,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: gridDrift 30s linear infinite;
+  }
+
+  @keyframes gridDrift {
+    from { transform: translate(0,0); }
+    to { transform: translate(60px, 60px); }
+  }
+
+  .hero-glow {
+    position: absolute;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(168,130,221,0.06) 0%, transparent 70%);
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    animation: pulse 4s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+    50% { transform: translate(-50%,-50%) scale(1.15); opacity: 0.6; }
+  }
+
+  .hero-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.25em;
+    color: var(--accent4);
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    position: relative;
+    animation: fadeSlideUp 0.8s ease both;
+  }
+
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(3rem, 7vw, 6rem);
+    font-weight: 900;
+    color: var(--bright);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    position: relative;
+    animation: fadeSlideUp 0.9s 0.1s ease both;
+  }
+
+  .hero h1 em { font-style: italic; color: var(--accent4); }
+
+  .hero-sub {
+    font-size: 1.25rem;
+    font-style: italic;
+    color: var(--muted);
+    max-width: 600px;
+    margin-top: 1.2rem;
+    position: relative;
+    animation: fadeSlideUp 0.9s 0.2s ease both;
+  }
+
+  .scroll-cue {
+    position: absolute;
+    bottom: 2.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    animation: fadeSlideUp 1s 0.5s ease both;
+  }
+
+  .scroll-line {
+    width: 1px; height: 40px;
+    background: linear-gradient(to bottom, var(--muted), transparent);
+    animation: scrollLine 2s ease-in-out infinite;
+  }
+
+  @keyframes scrollLine {
+    0%, 100% { transform: scaleY(1); opacity: 1; }
+    50% { transform: scaleY(0.3); opacity: 0.3; }
+  }
+
+  /* ── LAYOUT ── */
+  .container { max-width: 900px; margin: 0 auto; padding: 0 2rem; }
+
+  /* ── NAV DOTS ── */
+  .nav-dots {
+    position: fixed; right: 2rem; top: 50%;
+    transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 0.75rem; z-index: 100;
+  }
+  .nav-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--border); cursor: pointer;
+    transition: all 0.3s; border: 1px solid var(--muted);
+  }
+  .nav-dot.active, .nav-dot:hover {
+    background: var(--accent4); border-color: var(--accent4); transform: scale(1.5);
+  }
+
+  /* ── SECTION ── */
+  section {
+    padding: 6rem 0; position: relative; opacity: 0;
+    transform: translateY(30px); transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  section.visible { opacity: 1; transform: translateY(0); }
+
+  .section-tag {
+    font-family: 'DM Mono', monospace; font-size: 0.65rem;
+    letter-spacing: 0.3em; color: var(--accent4);
+    text-transform: uppercase; margin-bottom: 0.75rem;
+  }
+
+  h2 {
+    font-family: 'Playfair Display', serif; font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 700; color: var(--bright); line-height: 1.15; margin-bottom: 1.5rem;
+  }
+  h3 {
+    font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--bright);
+    margin: 3rem 0 1rem; font-weight: 400; font-style: italic;
+  }
+  p { margin-bottom: 1.5rem; }
+
+  .divider {
+    width: 60px; height: 2px;
+    background: linear-gradient(to right, var(--accent4), transparent);
+    margin: 1.5rem 0 2.5rem;
+  }
+
+  /* ── FORMULA BLOCK ── */
+  .formula {
+    background: var(--card); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent4); padding: 1.75rem 2rem;
+    margin: 2.5rem 0; font-family: 'DM Mono', monospace; font-size: 0.95rem;
+    color: var(--bright); border-radius: 4px; overflow-x: auto; line-height: 2.2;
+  }
+  .formula .comment { color: var(--muted); font-size: 0.85rem; }
+
+  /* ── CALLOUT ── */
+  .callout {
+    background: linear-gradient(135deg, rgba(168,130,221,0.07), rgba(168,130,221,0.02));
+    border: 1px solid rgba(168,130,221,0.2); border-radius: 6px;
+    padding: 1.75rem 2rem; margin: 2.5rem 0; font-style: italic; color: var(--accent4);
+    font-size: 1.1rem; border-left: 3px solid var(--accent4);
+  }
+
+  /* ── INTERACTIVE CANVAS VIEWPORT ── */
+  .viewport {
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    margin: 3rem 0; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+  .viewport-header {
+    padding: 0.85rem 1.5rem; background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 0.6rem;
+  }
+  .vp-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .vp-dot:nth-child(1) { background: #f07a7a; }
+  .vp-dot:nth-child(2) { background: #e8c96d; }
+  .vp-dot:nth-child(3) { background: #7eb8f7; }
+
+  .viewport-title {
+    font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted);
+    letter-spacing: 0.1em; margin-left: auto; text-transform: uppercase;
+  }
+  .viewport-body { padding: 1.5rem; }
+  canvas { display: block; border-radius: 4px; }
+
+  /* ── CONTROLS ── */
+  .controls { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1.2rem; align-items: center; }
+  .ctrl-group { display: flex; flex-direction: column; gap: 0.3rem; }
+  .ctrl-label {
+    font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 0.1em;
+    color: var(--muted); text-transform: uppercase;
+  }
+  input[type=range] {
+    -webkit-appearance: none; width: 140px; height: 3px; background: var(--border);
+    border-radius: 2px; outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent4); cursor: pointer; border: 2px solid var(--bg);
+  }
+  .val-display { font-family: 'DM Mono', monospace; font-size: 0.75rem; color: var(--accent); min-width: 3rem; }
+  .btn {
+    font-family: 'DM Mono', monospace; font-size: 0.7rem; letter-spacing: 0.1em;
+    padding: 0.5rem 1.2rem; border: 1px solid var(--accent4); background: transparent;
+    color: var(--accent4); border-radius: 3px; cursor: pointer; transition: all 0.2s; text-transform: uppercase;
+  }
+  .btn:hover { background: var(--accent4); color: var(--bg); }
+
+  /* ── DISPLAYS ── */
+  .matrix-display {
+    font-family: 'DM Mono', monospace; font-size: 0.85rem; background: var(--surface);
+    border: 1px solid var(--border); padding: 1rem 1.5rem; border-radius: 4px;
+    display: inline-block; line-height: 1.8; color: var(--bright);
+  }
+  .matrix-display::before, .matrix-display::after {
+    content: ''; position: absolute; top: 8px; bottom: 8px; width: 6px; border: 1px solid var(--muted);
+  }
+  .matrix-display::before { left: 4px; border-right: none; }
+  .matrix-display::after { right: 4px; border-left: none; }
+  .matrix-display-container { position: relative; padding: 0 10px; }
+
+  .det-display {
+    margin-top: 1rem; font-family: 'DM Mono', monospace; font-size: 0.9rem;
+    color: var(--accent4); padding: 0.6rem 1rem; background: rgba(168,130,221,0.07);
+    border-radius: 4px; display: inline-block; border: 1px solid rgba(168,130,221,0.2);
+  }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin: 2rem 0; }
+  @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } .nav-dots { display: none; } }
+
+  .info-card { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 1.5rem; }
+  .info-card .card-title {
+    font-family: 'DM Mono', monospace; font-size: 0.75rem; letter-spacing: 0.15em;
+    color: var(--accent); text-transform: uppercase; margin-bottom: 0.75rem;
+  }
+
+  .hl { color: var(--accent4); font-style: normal; font-weight: 600; }
+  .hl2 { color: var(--accent); font-weight: 600; }
+  .hl3 { color: var(--accent3); font-weight: 600; }
+  .hl_blue { color: var(--accent2); font-weight: 600; }
+
+  .sep { width: 100%; height: 1px; background: linear-gradient(to right, transparent, var(--border), transparent); margin: 4rem 0; }
+  footer { border-top: 1px solid var(--border); padding: 3rem 2rem; text-align: center; font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted); letter-spacing: 0.1em; }
+
+  @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  .tooltip { font-family: 'DM Mono', monospace; font-size: 0.75rem; color: var(--muted); text-align: center; margin-top: 0.75rem; }
+</style>
+</head>
+<body>
+
+<nav class="nav-dots" id="navDots">
+  <div class="nav-dot active" data-section="0" title="Intro"></div>
+  <div class="nav-dot" data-section="1" title="The Basis Vectors"></div>
+  <div class="nav-dot" data-section="2" title="The Rotation Matrix"></div>
+  <div class="nav-dot" data-section="3" title="Geometric Proofs"></div>
+  <div class="nav-dot" data-section="4" title="The Dot Product"></div>
+  <div class="nav-dot" data-section="5" title="The Determinant"></div>
+  <div class="nav-dot" data-section="6" title="Summary"></div>
+</nav>
+
+<section class="hero" id="s0">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+  <div style="position:relative;">
+    <div class="hero-eyebrow">Algebra Meets Geometry · Visual Essay</div>
+    <h1>The Matrix &amp;<br><em>The Circle</em></h1>
+    <p class="hero-sub">Deducing the deep connections between Trigonometry and Linear Algebra in slow motion.</p>
+  </div>
+  <div class="scroll-cue">
+    <div class="scroll-line"></div>
+    <span>SCROLL</span>
+  </div>
+</section>
+
+<section id="s1">
+  <div class="container">
+    <div class="section-tag">§ 01 — The Foundation</div>
+    <h2>Escaping the Triangle</h2>
+    <div class="divider"></div>
+
+    <p>We are often first taught trigonometry through the narrow lens of right-angled triangles. SOH-CAH-TOA is drilled into our minds as a ratio of static side lengths. But this perspective is brittle; it shatters the moment an angle exceeds 90 degrees. To truly understand trigonometry, we must completely divorce it from triangles and embed it into the heart of <strong>Linear Algebra</strong>.</p>
+
+    <p>Let us begin in a 2D vector space. Every point in this space can be reached by a linear combination of two fundamental, orthogonal building blocks: the basis vectors <span class="hl2">i&circ;</span> (pointing right) and <span class="hl_blue">j&circ;</span> (pointing up).</p>
+
+    <div class="callout">
+      Sine and Cosine are not just ratios. They are the <strong>coordinates</strong> of the basis vector i&circ; after it has been continuously transformed by rotation.
+    </div>
+
+    <p>Imagine grasping the vector <span class="hl2">i&circ;</span> and rotating it counter-clockwise around the origin by an angle &theta;. As it sweeps out a unit circle, its new x-coordinate is, by absolute definition, <span class="hl">cos(&theta;)</span>. Its new y-coordinate is <span class="hl">sin(&theta;)</span>.</p>
+
+    <div class="formula">
+      Let basis vector i&circ; = [ 1, 0 ]<sup>T</sup><br><br>
+      After rotation by angle &theta;:<br>
+      i&circ;<sub>rotated</sub> = [ <span class="hl">cos(&theta;)</span>, <span class="hl">sin(&theta;)</span> ]<sup>T</sup>
+    </div>
+
+    <p>We haven't computed any ratios. We have simply defined a dynamic mapping of space. Sine and Cosine are the continuous coordinate trackers of rotated basis vectors.</p>
+
+    <div class="viewport">
+      <div class="viewport-header">
+        <div class="vp-dot"></div><div class="vp-dot"></div><div class="vp-dot"></div>
+        <span class="viewport-title">INTERACTIVE · The Coordinate Tracker</span>
+      </div>
+      <div class="viewport-body">
+        <p style="font-size:0.9rem; color:var(--muted); margin-bottom:1rem;">
+          Drag the angle slider to rotate the <span style="color:var(--accent);">yellow basis vector</span>. Watch how its x and y projections precisely define cosine and sine.
+        </p>
+        
+        <div class="two-col" style="align-items: center;">
+          <div>
+            <canvas id="cvUnitCircle" width="300" height="300" style="width:100%;max-width:300px;"></canvas>
+          </div>
+          <div>
+            <div class="controls" style="margin-top:0;">
+              <div class="ctrl-group" style="width:100%;">
+                <span class="ctrl-label">Rotation Angle (&theta;)</span>
+                <div style="display:flex;gap:0.5rem;align-items:center;">
+                  <input type="range" id="angleSlider" min="0" max="360" step="1" value="45" style="width:100%;">
+                  <span class="val-display" id="angleSliderD">45&deg;</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="matrix-display" style="margin-top:1.5rem; width:100%;">
+              <div class="matrix-display-container">
+                <span style="color:var(--muted);">Rotated vector:</span><br><br>
+                v&prime; = ⎡ <span class="hl" id="ucCos">0.707</span> ⎤ &larr; <span style="font-size:0.75rem;color:var(--muted);">cos(&theta;)</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⎣ <span class="hl" id="ucSin">0.707</span> ⎦ &larr; <span style="font-size:0.75rem;color:var(--muted);">sin(&theta;)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="s2">
+  <div class="container">
+    <div class="section-tag">§ 02 — Building the Machinery</div>
+    <h2>Deducing the Rotation Matrix</h2>
+    <div class="divider"></div>
+
+    <p>A central tenet of linear algebra states that to know how an entire vector space transforms, you only need to know where the basis vectors land. If we can track where <span class="hl2">i&circ;</span> and <span class="hl_blue">j&circ;</span> go under a rotation of angle &theta;, we can build a machine—a matrix—that rotates <em>any</em> vector in existence.</p>
+
+    <p>Let's deduce this slowly from scratch. We already know that rotating <span class="hl2">i&circ;</span> = [1, 0] by &theta; lands it at <strong>[cos &theta;, sin &theta;]</strong>. This becomes the <em>first column</em> of our matrix.</p>
+
+    <p>But what about <span class="hl_blue">j&circ;</span> = [0, 1]? It starts pointing straight up. If we rotate it by &theta;, it leans into the negative x-territory. By geometric symmetry (rotating the first result by 90&deg;), its new x-coordinate becomes <strong>-sin &theta;</strong>, and its new y-coordinate becomes <strong>cos &theta;</strong>. This forms our <em>second column</em>.</p>
+
+    <div class="formula">
+      <span class="comment">// The 2D Rotation Matrix R(&theta;)</span><br>
+      R(&theta;) = [ Transformed i&circ; | Transformed j&circ; ]<br><br>
+      R(&theta;) = ⎡ <span class="hl2">cos &theta;</span> &nbsp; <span class="hl_blue">-sin &theta;</span> ⎤<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⎣ <span class="hl2">sin &theta;</span> &nbsp;&nbsp; <span class="hl_blue">cos &theta;</span> ⎦
+    </div>
+
+    <p>This single elegant grid of four trigonometric functions encodes the complete geometric act of rotation. If you multiply any vector <i>[x, y]<sup>T</sup></i> by this matrix, it computes the exact coordinates of that vector rotated by &theta;.</p>
+
+    <div class="viewport">
+      <div class="viewport-header">
+        <div class="vp-dot"></div><div class="vp-dot"></div><div class="vp-dot"></div>
+        <span class="viewport-title">INTERACTIVE · Visualizing Matrix Columns</span>
+      </div>
+      <div class="viewport-body">
+        <p style="font-size:0.9rem; color:var(--muted); margin-bottom:1rem;">
+          Drag the angle to rotate the entire grid. Observe how the <span style="color:var(--accent);">first column</span> tracks the horizontal basis vector, while the <span style="color:var(--accent2);">second column</span> tracks the vertical basis vector.
+        </p>
+        
+        <div class="two-col" style="align-items: center;">
+          <div>
+            <canvas id="cvRotationMatrix" width="300" height="300" style="width:100%;max-width:300px;"></canvas>
+          </div>
+          <div>
+            <div class="controls" style="margin-top:0;">
+              <div class="ctrl-group" style="width:100%;">
+                <span class="ctrl-label">Matrix Angle (&theta;)</span>
+                <div style="display:flex;gap:0.5rem;align-items:center;">
+                  <input type="range" id="matAngleSlider" min="0" max="360" step="1" value="30" style="width:100%;">
+                  <span class="val-display" id="matAngleSliderD">30&deg;</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="matrix-display" style="margin-top:1.5rem; width:100%;">
+              <div class="matrix-display-container">
+                <span style="color:var(--muted);">R(&theta;) =</span><br><br>
+                ⎡ <span class="hl2" id="m11">0.866</span> &nbsp;&nbsp; <span class="hl_blue" id="m12">-0.500</span> ⎤<br>
+                ⎣ <span class="hl2" id="m21">0.500</span> &nbsp;&nbsp;&nbsp; <span class="hl_blue" id="m22">0.866</span> ⎦
+              </div>
+              <div style="margin-top:1rem; font-size:0.75rem; color:var(--muted);">
+                det(R) = cos²&theta; - (-sin²&theta;) = 1<br>
+                (Area is perfectly preserved)
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="s3">
+  <div class="container">
+    <div class="section-tag">§ 03 — A Slow-Motion Proof</div>
+    <h2>Dissolving Algebraic Tedium</h2>
+    <div class="divider"></div>
+
+    <p>In high school, students are often forced to memorize the terrifying angle addition formulas: <br><i>sin(&alpha; + &beta;) = sin&alpha; cos&beta; + cos&alpha; sin&beta;</i>. The standard algebraic derivations are incredibly tedious and devoid of intuition. Let's use our new linear algebra machinery to deduce this formula from scratch, visually and geometrically.</p>
+
+    <p>What does it mean to rotate a vector by an angle &alpha;, and then subsequently rotate it by an angle &beta;? Geometrically, it is identical to performing a single, continuous rotation by the combined angle <strong>(&alpha; + &beta;)</strong>.</p>
+
+    <p>In linear algebra, applying consecutive transformations is perfectly equivalent to <strong>matrix multiplication</strong>. Therefore, if we multiply the rotation matrix for &beta; by the rotation matrix for &alpha;, the resulting matrix <em>must</em> be the rotation matrix for (&alpha; + &beta;).</p>
+
+    <div class="formula">
+      R(&alpha; + &beta;) = R(&beta;) &middot; R(&alpha;)<br><br>
+      ⎡ cos(&alpha;+&beta;)  -sin(&alpha;+&beta;) ⎤ = ⎡ cos&beta;  -sin&beta; ⎤ &middot; ⎡ cos&alpha;  -sin&alpha; ⎤<br>
+      ⎣ sin(&alpha;+&beta;) &nbsp; cos(&alpha;+&beta;) ⎦ &nbsp; ⎣ sin&beta; &nbsp; cos&beta; ⎦ &nbsp; ⎣ sin&alpha; &nbsp; cos&alpha; ⎦
+    </div>
+
+    <p>If we perform the matrix multiplication on the right-hand side using the standard row-by-column dot product, a miracle occurs. The entries of the resulting matrix automatically yield the angle addition formulas!</p>
+
+    <div class="callout">
+      Looking at the top-left entry: <span class="hl">cos(&alpha;+&beta;) = cos&beta; cos&alpha; - sin&beta; sin&alpha;</span>.<br>
+      Looking at the bottom-left entry: <span class="hl">sin(&alpha;+&beta;) = sin&beta; cos&alpha; + cos&beta; sin&alpha;</span>.<br><br>
+      No triangles. No complicated geometry. Just the pure mechanics of combining linear transformations.
+    </div>
+
+    <div class="viewport">
+      <div class="viewport-header">
+        <div class="vp-dot"></div><div class="vp-dot"></div><div class="vp-dot"></div>
+        <span class="viewport-title">INTERACTIVE · Matrix Composition Proof</span>
+      </div>
+      <div class="viewport-body">
+        <p style="font-size:0.9rem; color:var(--muted); margin-bottom:1rem;">
+          Set angles &alpha; and &beta;. Watch as applying R(&alpha;) followed by R(&beta;) geometrically lands the vector in the exact same location as a single transformation R(&alpha;+&beta;). The matrix arithmetic perfectly mirrors the geometry.
+        </p>
+        
+        <div class="two-col" style="align-items: center;">
+          <div>
+            <canvas id="cvComposition" width="300" height="300" style="width:100%;max-width:300px;"></canvas>
+          </div>
+          <div>
+            <div class="controls" style="margin-top:0;">
+              <div class="ctrl-group" style="width:100%;">
+                <span class="ctrl-label">First Rotation (&alpha;)</span>
+                <div style="display:flex;gap:0.5rem;align-items:center;">
+                  <input type="range" id="alphaSlider" min="0" max="180" step="1" value="30" style="width:100%;">
+                  <span class="val-display" id="alphaSliderD" style="color:var(--accent);">30&deg;</span>
+                </div>
+              </div>
+              <div class="ctrl-group" style="width:100%; margin-top:0.5rem;">
+                <span class="ctrl-label">Second Rotation (&beta;)</span>
+                <div style="display:flex;gap:0.5rem;align-items:center;">
+                  <input type="range" id="betaSlider" min="0" max="180" step="1" value="45" style="width:100%;">
+                  <span class="val-display" id="betaSliderD" style="color:var(--accent2);">45&deg;</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="matrix-display" style="margin-top:1.5rem; width:100%; font-size:0.8rem;">
+              <div style="color:var(--muted); margin-bottom:0.5rem;">Resulting position vector:</div>
+              v&prime;&prime; = R(&beta;) &middot; R(&alpha;) &middot; [1, 0]<sup>T</sup><br><br>
+              x = cos(<span id="bValTxt">45</span>)&middot;cos(<span id="aValTxt">30</span>) - sin(<span id="bValTxt2">45</span>)&middot;sin(<span id="aValTxt2">30</span>)<br>
+              x = <span class="hl" id="compXTxt">0.259</span><br><br>
+              y = sin(<span id="bValTxt3">45</span>)&middot;cos(<span id="aValTxt3">30</span>) + cos(<span id="bValTxt4">45</span>)&middot;sin(<span id="aValTxt4">30</span>)<br>
+              y = <span class="hl" id="compYTxt">0.966</span><br><br>
+              <span style="color:var(--accent4);">Verify: cos(75&deg;) = 0.259, sin(75&deg;) = 0.966</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="s4">
+  <div class="container">
+    <div class="section-tag">§ 04 — Measuring Alignment</div>
+    <h2>The Dot Product &amp; Cosine</h2>
+    <div class="divider"></div>
+
+    <p>How do we extract the angle between two arbitrary vectors sitting in space? We generalize the concept of Cosine. If Cosine tracks the x-coordinate of a unit vector, it is fundamentally tracking <em>how much</em> of that vector points in the horizontal direction. It is a measure of <strong>alignment</strong>.</p>
+
+    <p>The <span class="hl">Dot Product</span> (or Inner Product) is the ultimate mathematical tool for measuring alignment. Geometrically, the dot product of two vectors <i>u</i> and <i>v</i> is defined as the length of <i>u</i> projected onto <i>v</i>, multiplied by the length of <i>v</i>.</p>
+
+    <div class="formula">
+      Geometric Definition:<br>
+      u &middot; v = ||u|| &middot; ||v|| &middot; <span class="hl">cos(&theta;)</span><br><br>
+      Algebraic Definition:<br>
+      u &middot; v = (u<sub>x</sub> &middot; v<sub>x</sub>) + (u<sub>y</sub> &middot; v<sub>y</sub>)
+    </div>
+
+    <p>By equating these two definitions, we unlock a massive computational shortcut. We can find the exact Cosine of the angle between two vectors using only basic arithmetic on their coordinates, completely bypassing the need for a protractor or inverse trig functions.</p>
+
+    <div class="callout">
+      If the dot product is 0, the vectors share zero alignment; they are perfectly perpendicular (orthogonal), and cos(90&deg;) = 0. If the dot product is negative, they are actively opposing each other.
+    </div>
+
+    <div class="viewport">
+      <div class="viewport-header">
+        <div class="vp-dot"></div><div class="vp-dot"></div><div class="vp-dot"></div>
+        <span class="viewport-title">INTERACTIVE · Projection and Alignment</span>
+      </div>
+      <div class="viewport-body">
+        <p style="font-size:0.9rem; color:var(--muted); margin-bottom:1rem;">
+          Drag the tips of vectors <span style="color:var(--accent);">u</span> and <span style="color:var(--accent2);">v</span>. Watch how the projection (the glowing shadow) determines the magnitude and sign of the dot product.
+        </p>
+        
+        <div class="two-col" style="align-items: center;">
+          <div>
+            <canvas id="cvDotProduct" width="300" height="300" style="width:100%;max-width:300px; cursor: crosshair;"></canvas>
+            <div class="tooltip">Drag vector tips to update</div>
+          </div>
+          <div>
+            <div class="matrix-display" style="width:100%; font-size: 0.85rem;">
+              u = [ <span id="dpUx" class="hl2">2.0</span>, <span id="dpUy" class="hl2">1.0</span> ]<br>
+              v = [ <span id="dpVx" class="hl_blue">1.0</span>, <span id="dpVy" class="hl_blue">2.0</span> ]<br><br>
+              <strong>Algebraic:</strong><br>
+              u &middot; v = (<span class="hl2">2.0</span> &times; <span class="hl_blue">1.0</span>) + (<span class="hl2">1.0</span> &times; <span class="hl_blue">2.0</span>) = <span class="hl" id="dpResultAlg">4.00</span><br><br>
+              <strong>Geometric:</strong><br>
+              ||u|| = <span id="dpMagU">2.24</span>, ||v|| = <span id="dpMagV">2.24</span><br>
+              cos(&theta;) = 4.00 / (2.24 &times; 2.24) = <span id="dpCosTh">0.80</span><br>
+              &theta; = <span class="hl4" id="dpAngle">36.9</span>&deg;
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="s5">
+  <div class="container">
+    <div class="section-tag">§ 05 — Measuring Independence</div>
+    <h2>The Determinant &amp; Sine</h2>
+    <div class="divider"></div>
+
+    <p>If Cosine and the Dot Product measure alignment, then Sine measures <strong>perpendicularity</strong>, or linear independence. How much does a vector deviate from another? In a 2D space, this deviation sweeps out an area.</p>
+
+    <p>If we arrange two vectors <i>u</i> and <i>v</i> as columns in a 2x2 matrix, the <span class="hl">Determinant</span> of that matrix precisely calculates the signed area of the parallelogram spanned by those two vectors. This area is intrinsically tied to the Sine of the angle between them.</p>
+
+    <div class="formula">
+      Let matrix A = [ u | v ] = ⎡ u<sub>x</sub>  v<sub>x</sub> ⎤<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⎣ u<sub>y</sub>  v<sub>y</sub> ⎦<br><br>
+      det(A) = (u<sub>x</sub> &middot; v<sub>y</sub>) - (u<sub>y</sub> &middot; v<sub>x</sub>)<br><br>
+      Geometric Meaning:<br>
+      |det(A)| = ||u|| &middot; ||v|| &middot; <span class="hl">|sin(&theta;)|</span> = Area
+    </div>
+
+    <p>Notice the symmetry. The algebraic dot product contains a plus sign and yields Cosine. The algebraic determinant contains a minus sign and yields Sine (often acting as the 2D equivalent of the Cross Product). Together, they capture the complete geometric relationship between any two vectors.</p>
+
+    <div class="callout">
+      If det(A) = 0, the vectors span zero area. They are parallel or perfectly anti-parallel. sin(0&deg;) = 0. The vectors are linearly dependent, and the matrix collapses space into a 1D line.
+    </div>
+
+    <div class="viewport">
+      <div class="viewport-header">
+        <div class="vp-dot"></div><div class="vp-dot"></div><div class="vp-dot"></div>
+        <span class="viewport-title">INTERACTIVE · Area and Independence</span>
+      </div>
+      <div class="viewport-body">
+        <p style="font-size:0.9rem; color:var(--muted); margin-bottom:1rem;">
+          Drag the vectors. The area of the resulting parallelogram is the determinant. Observe how the area reaches its maximum when the vectors are perfectly orthogonal (sin 90&deg; = 1), and shrinks to zero when they align.
+        </p>
+        
+        <div class="two-col" style="align-items: center;">
+          <div>
+            <canvas id="cvDeterminant" width="300" height="300" style="width:100%;max-width:300px; cursor: crosshair;"></canvas>
+            <div class="tooltip">Drag vector tips to shear area</div>
+          </div>
+          <div>
+            <div class="matrix-display" style="width:100%; font-size: 0.85rem;">
+              A = ⎡ <span id="dtUx" class="hl2">2.0</span> &nbsp; <span id="dtVx" class="hl_blue">1.0</span> ⎤<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;⎣ <span id="dtUy" class="hl2">0.5</span> &nbsp; <span id="dtVy" class="hl_blue">2.0</span> ⎦<br><br>
+              det(A) = (<span class="hl2">2.0</span>&times;<span class="hl_blue">2.0</span>) - (<span class="hl2">0.5</span>&times;<span class="hl_blue">1.0</span>)<br>
+              det(A) = <span class="hl" id="dtResultAlg">3.50</span><br><br>
+              ||u|| = <span id="dtMagU">2.06</span>, ||v|| = <span id="dtMagV">2.24</span><br>
+              Area = 2.06 &times; 2.24 &times; <span class="hl4">sin(<span id="dtAngle">49.4</span>&deg;)</span><br>
+              Area = <span id="dtGeomResult">3.50</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="s6">
+  <div class="container">
+    <div class="section-tag">§ 06 — The Deep Connection</div>
+    <h2>Trigonometry is Vector Geometry</h2>
+    <div class="divider"></div>
+
+    <p>We began by freeing Sine and Cosine from the rigid confines of right-angled triangles. By defining them as the coordinates of continuously rotating basis vectors, we constructed the rotation matrix—a machine capable of transforming all of space.</p>
+
+    <p>By shifting to matrices, tedious algebraic identities like angle addition revealed themselves as simple, intuitive consequences of geometric composition. Finally, we generalized Cosine and Sine into the Dot Product and Determinant, creating algebraic tools capable of measuring alignment and area in any dimension, without ever calculating an explicit angle.</p>
+
+    <p>Trigonometry is not a separate discipline from Linear Algebra. It is simply the study of how vector spaces bend and rotate, viewed through a specific numerical lens.</p>
+
+    <div class="sep"></div>
+
+    <h3>Summary: The Link at a Glance</h3>
+    <div class="two-col">
+      <div class="info-card">
+        <div class="card-title">Sine &amp; Cosine</div>
+        <p style="font-size:0.9rem;">Not static ratios, but the fundamental coordinates of standard basis vectors under the action of continuous rotation.</p>
+      </div>
+      <div class="info-card">
+        <div class="card-title">Angle Addition Formulas</div>
+        <p style="font-size:0.9rem;">The algebraic result of multiplying two rotation matrices together. Sequential rotation equals matrix multiplication.</p>
+      </div>
+      <div class="info-card">
+        <div class="card-title">The Dot Product</div>
+        <p style="font-size:0.9rem;">The multi-dimensional generalization of Cosine. An algebraic operation that computes purely geometric alignment.</p>
+      </div>
+      <div class="info-card">
+        <div class="card-title">The Determinant</div>
+        <p style="font-size:0.9rem;">The generalization of Sine. Computes the geometric area spanned by vectors, representing their linear independence.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    Trigonometry &amp; Linear Algebra · Visual Essay
+  </div>
+</footer>
+
+<script>
+// ─────────────────────────────────────────────
+// UTILITY FUNCTIONS
+// ─────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const TAU = Math.PI * 2;
+
+function drawArrow(ctx, x1, y1, x2, y2, color, lw = 2, hs = 10) {
+  ctx.save();
+  ctx.strokeStyle = color; 
+  ctx.fillStyle = color; 
+  ctx.lineWidth = lw;
+  ctx.beginPath(); 
+  ctx.moveTo(x1,y1); 
+  ctx.lineTo(x2,y2); 
+  ctx.stroke();
+  const a = Math.atan2(y2-y1, x2-x1);
+  ctx.beginPath();
+  ctx.moveTo(x2,y2);
+  ctx.lineTo(x2 - hs * Math.cos(a - 0.35), y2 - hs * Math.sin(a - 0.35));
+  ctx.lineTo(x2 - hs * Math.cos(a + 0.35), y2 - hs * Math.sin(a + 0.35));
+  ctx.closePath(); 
+  ctx.fill();
+  ctx.restore();
+}
+
+function clearCanvas(cv, bg = '#16161c') {
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = bg; 
+  ctx.fillRect(0, 0, cv.width, cv.height);
+}
+
+function drawGrid(cv, cx, cy, scale, col = 'rgba(255,255,255,0.07)', steps = 6) {
+  const ctx = cv.getContext('2d');
+  ctx.strokeStyle = col; 
+  ctx.lineWidth = 0.5;
+  for (let i = -steps; i <= steps; i++) {
+    ctx.beginPath(); 
+    ctx.moveTo(cx + i * scale, 0); 
+    ctx.lineTo(cx + i * scale, cv.height); 
+    ctx.stroke();
+    ctx.beginPath(); 
+    ctx.moveTo(0, cy + i * scale); 
+    ctx.lineTo(cv.width, cy + i * scale); 
+    ctx.stroke();
+  }
+  // Main Axes
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)'; 
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, cv.height); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(cv.width, cy); ctx.stroke();
+}
+
+// Coordinate mapping tools
+function wToS(wx, wy, cx, cy, sc) { return [cx + wx * sc, cy - wy * sc]; }
+function sToW(sx, sy, cx, cy, sc) { return [(sx - cx) / sc, -(sy - cy) / sc]; }
+
+// ─────────────────────────────────────────────
+// VIEWPORT 1: THE UNIT CIRCLE (Basis Tracker)
+// ─────────────────────────────────────────────
+(function() {
+  const cv = $('cvUnitCircle');
+  const cx = cv.width / 2;
+  const cy = cv.height / 2;
+  const sc = 100;
+
+  function render() {
+    clearCanvas(cv);
+    const ctx = cv.getContext('2d');
+    drawGrid(cv, cx, cy, sc/2);
+
+    const deg = parseFloat($('angleSlider').value);
+    const rad = deg * Math.PI / 180;
+
+    // Draw unit circle
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(cx, cy, sc, 0, TAU); ctx.stroke();
+
+    const ux = Math.cos(rad);
+    const uy = Math.sin(rad);
+    const [px, py] = wToS(ux, uy, cx, cy, sc);
+
+    // Draw Cosine Projection (x-axis)
+    ctx.strokeStyle = '#f07a7a'; // red
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, cy); ctx.stroke();
+    
+    // Draw Sine Projection (y-axis)
+    ctx.strokeStyle = '#7eb8f7'; // blue
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(px, cy); ctx.lineTo(px, py); ctx.stroke();
+
+    // Draw Rotated Vector
+    drawArrow(ctx, cx, cy, px, py, '#e8c96d', 3, 12);
+
+    // Draw Angle Arc
+    ctx.fillStyle = 'rgba(232,201,109,0.2)';
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, 25, 0, -rad, true); // -rad because canvas y is down
+    ctx.closePath();
+    ctx.fill();
+
+    // Update Text
+    $('angleSliderD').textContent = deg + '°';
+    $('ucCos').textContent = ux.toFixed(3);
+    $('ucSin').textContent = uy.toFixed(3);
+    
+    // Colorize text elements in matrix
+    $('ucCos').style.color = '#f07a7a';
+    $('ucSin').style.color = '#7eb8f7';
+  }
+
+  $('angleSlider').addEventListener('input', render);
+  render();
+})();
+
+// ─────────────────────────────────────────────
+// VIEWPORT 2: THE ROTATION MATRIX
+// ─────────────────────────────────────────────
+(function() {
+  const cv = $('cvRotationMatrix');
+  const cx = cv.width / 2;
+  const cy = cv.height / 2;
+  const sc = 70;
+
+  function render() {
+    clearCanvas(cv);
+    const ctx = cv.getContext('2d');
+    
+    const deg = parseFloat($('matAngleSlider').value);
+    const rad = deg * Math.PI / 180;
+
+    // Static ghost grid
+    drawGrid(cv, cx, cy, sc, 'rgba(255,255,255,0.03)');
+
+    // Transformed grid lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.lineWidth = 1;
+    for(let i=-4; i<=4; i++) {
+        // Vertical-ish lines
+        ctx.beginPath();
+        let [x1, y1] = wToS(i * Math.cos(rad) - (-4) * Math.sin(rad), i * Math.sin(rad) + (-4) * Math.cos(rad), cx, cy, sc);
+        let [x2, y2] = wToS(i * Math.cos(rad) - (4) * Math.sin(rad), i * Math.sin(rad) + (4) * Math.cos(rad), cx, cy, sc);
+        ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        
+        // Horizontal-ish lines
+        ctx.beginPath();
+        let [x3, y3] = wToS((-4) * Math.cos(rad) - i * Math.sin(rad), (-4) * Math.sin(rad) + i * Math.cos(rad), cx, cy, sc);
+        let [x4, y4] = wToS((4) * Math.cos(rad) - i * Math.sin(rad), (4) * Math.sin(rad) + i * Math.cos(rad), cx, cy, sc);
+        ctx.moveTo(x3, y3); ctx.lineTo(x4, y4); ctx.stroke();
+    }
+
+    // Matrix elements
+    const c = Math.cos(rad);
+    const s = Math.sin(rad);
+
+    // Draw Column 1 (Transformed i-hat)
+    const [iPx, iPy] = wToS(c, s, cx, cy, sc);
+    drawArrow(ctx, cx, cy, iPx, iPy, '#e8c96d', 3, 12); // Yellow
+    
+    // Draw Column 2 (Transformed j-hat)
+    const [jPx, jPy] = wToS(-s, c, cx, cy, sc);
+    drawArrow(ctx, cx, cy, jPx, jPy, '#7eb8f7', 3, 12); // Blue
+
+    // Update UI
+    $('matAngleSliderD').textContent = deg + '°';
+    $('m11').textContent = c.toFixed(3);
+    $('m21').textContent = s.toFixed(3);
+    $('m12').textContent = (-s).toFixed(3);
+    $('m22').textContent = c.toFixed(3);
+  }
+
+  $('matAngleSlider').addEventListener('input', render);
+  render();
+})();
+
+// ─────────────────────────────────────────────
+// VIEWPORT 3: COMPOSITION (Geometric Proof)
+// ─────────────────────────────────────────────
+(function() {
+  const cv = $('cvComposition');
+  const cx = cv.width / 2;
+  const cy = cv.height / 2;
+  const sc = 100;
+
+  function render() {
+    clearCanvas(cv);
+    const ctx = cv.getContext('2d');
+    drawGrid(cv, cx, cy, sc/2);
+
+    const alphaDeg = parseFloat($('alphaSlider').value);
+    const betaDeg = parseFloat($('betaSlider').value);
+    const a = alphaDeg * Math.PI / 180;
+    const b = betaDeg * Math.PI / 180;
+
+    // Unit circle
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.beginPath(); ctx.arc(cx, cy, sc, 0, TAU); ctx.stroke();
+
+    // Base vector [1, 0]
+    const [bx, by] = wToS(1, 0, cx, cy, sc);
+    drawArrow(ctx, cx, cy, bx, by, 'rgba(255,255,255,0.2)', 2, 8);
+
+    // After alpha
+    const ux = Math.cos(a);
+    const uy = Math.sin(a);
+    const [px, py] = wToS(ux, uy, cx, cy, sc);
+    drawArrow(ctx, cx, cy, px, py, '#e8c96d', 2, 10);
+
+    // After beta (total angle alpha + beta)
+    const vx = Math.cos(a + b);
+    const vy = Math.sin(a + b);
+    const [qx, qy] = wToS(vx, vy, cx, cy, sc);
+    drawArrow(ctx, cx, cy, qx, qy, '#a882dd', 3, 12); // Purple result
+
+    // Arcs
+    ctx.strokeStyle = '#e8c96d';
+    ctx.beginPath(); ctx.arc(cx, cy, 20, 0, -a, true); ctx.stroke();
+    
+    // The beta arc starts from alpha
+    ctx.strokeStyle = '#7eb8f7';
+    ctx.beginPath(); ctx.arc(cx, cy, 30, -a, -(a+b), true); ctx.stroke();
+
+    // Update Math Text
+    $('alphaSliderD').textContent = alphaDeg + '°';
+    $('betaSliderD').textContent = betaDeg + '°';
+    
+    $('aValTxt').textContent = alphaDeg + '°';
+    $('aValTxt2').textContent = alphaDeg + '°';
+    $('aValTxt3').textContent = alphaDeg + '°';
+    $('aValTxt4').textContent = alphaDeg + '°';
+    
+    $('bValTxt').textContent = betaDeg + '°';
+    $('bValTxt2').textContent = betaDeg + '°';
+    $('bValTxt3').textContent = betaDeg + '°';
+    $('bValTxt4').textContent = betaDeg + '°';
+
+    $('compXTxt').textContent = vx.toFixed(3);
+    $('compYTxt').textContent = vy.toFixed(3);
+  }
+
+  $('alphaSlider').addEventListener('input', render);
+  $('betaSlider').addEventListener('input', render);
+  render();
+})();
+
+// ─────────────────────────────────────────────
+// VIEWPORT 4: THE DOT PRODUCT
+// ─────────────────────────────────────────────
+(function() {
+  const cv = $('cvDotProduct');
+  const cx = cv.width / 2;
+  const cy = cv.height / 2;
+  const sc = 40;
+  
+  let u = [2.0, 1.0];
+  let v = [1.0, 2.0];
+  let dragging = null;
+
+  function render() {
+    clearCanvas(cv);
+    const ctx = cv.getContext('2d');
+    drawGrid(cv, cx, cy, sc);
+
+    const [ux, uy] = wToS(u[0], u[1], cx, cy, sc);
+    const [vx, vy] = wToS(v[0], v[1], cx, cy, sc);
+
+    // Calculate projection of u onto v
+    const dot = u[0]*v[0] + u[1]*v[1];
+    const magVSq = v[0]*v[0] + v[1]*v[1];
+    const projScale = dot / magVSq;
+    const projX = v[0] * projScale;
+    const projY = v[1] * projScale;
+    const [px, py] = wToS(projX, projY, cx, cy, sc);
+
+    // Draw projection shadow line
+    ctx.strokeStyle = 'rgba(240,122,122,0.6)';
+    ctx.lineWidth = 5;
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py); ctx.stroke();
+
+    // Draw perpendicular drop line
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(ux, uy); ctx.lineTo(px, py); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Draw vectors
+    drawArrow(ctx, cx, cy, vx, vy, '#7eb8f7', 3, 12); // v is blue
+    drawArrow(ctx, cx, cy, ux, uy, '#e8c96d', 3, 12); // u is yellow
+
+    // Calculate text stats
+    const magU = Math.sqrt(u[0]*u[0] + u[1]*u[1]);
+    const magV = Math.sqrt(magVSq);
+    const cosTh = dot / (magU * magV);
+    const angle = Math.acos(Math.max(-1, Math.min(1, cosTh))) * 180 / Math.PI;
+
+    // Update DOM
+    $('dpUx').textContent = u[0].toFixed(1);
+    $('dpUy').textContent = u[1].toFixed(1);
+    $('dpVx').textContent = v[0].toFixed(1);
+    $('dpVy').textContent = v[1].toFixed(1);
+    
+    $('dpResultAlg').textContent = dot.toFixed(2);
+    $('dpMagU').textContent = magU.toFixed(2);
+    $('dpMagV').textContent = magV.toFixed(2);
+    $('dpCosTh').textContent = cosTh.toFixed(2);
+    $('dpAngle').textContent = angle.toFixed(1);
+  }
+
+  // Interaction logic
+  function hitTest(sx, sy) {
+    const [ux, uy] = wToS(u[0], u[1], cx, cy, sc);
+    const [vx, vy] = wToS(v[0], v[1], cx, cy, sc);
+    if (Math.hypot(sx - ux, sy - uy) < 20) return 'u';
+    if (Math.hypot(sx - vx, sy - vy) < 20) return 'v';
+    return null;
+  }
+
+  cv.addEventListener('mousedown', e => {
+    const rect = cv.getBoundingClientRect();
+    const sx = (e.clientX - rect.left) * cv.width / rect.width;
+    const sy = (e.clientY - rect.top) * cv.height / rect.height;
+    dragging = hitTest(sx, sy);
+  });
+
+  window.addEventListener('mouseup', () => dragging = null);
+  
+  cv.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const rect = cv.getBoundingClientRect();
+    const sx = (e.clientX - rect.left) * cv.width / rect.width;
+    const sy = (e.clientY - rect.top) * cv.height / rect.height;
+    const [wx, wy] = sToW(sx, sy, cx, cy, sc);
+    
+    // Snap to 0.1 grid
+    const snapX = Math.round(wx * 10) / 10;
+    const snapY = Math.round(wy * 10) / 10;
+    
+    if (dragging === 'u') u = [snapX, snapY];
+    if (dragging === 'v') v = [snapX, snapY];
+    render();
+  });
+
+  render();
+})();
+
+// ─────────────────────────────────────────────
+// VIEWPORT 5: THE DETERMINANT
+// ─────────────────────────────────────────────
+(function() {
+  const cv = $('cvDeterminant');
+  const cx = cv.width / 2;
+  const cy = cv.height / 2;
+  const sc = 40;
+  
+  let u = [2.0, 0.5]; // column 1 (yellow)
+  let v = [1.0, 2.0]; // column 2 (blue)
+  let dragging = null;
+
+  function render() {
+    clearCanvas(cv);
+    const ctx = cv.getContext('2d');
+    drawGrid(cv, cx, cy, sc);
+
+    const [ux, uy] = wToS(u[0], u[1], cx, cy, sc);
+    const [vx, vy] = wToS(v[0], v[1], cx, cy, sc);
+    const [px, py] = wToS(u[0]+v[0], u[1]+v[1], cx, cy, sc);
+
+    const det = (u[0] * v[1]) - (u[1] * v[0]);
+
+    // Draw Parallelogram Area
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(ux, uy);
+    ctx.lineTo(px, py);
+    ctx.lineTo(vx, vy);
+    ctx.closePath();
+    
+    // Color based on sign of determinant
+    if (det >= 0) {
+        ctx.fillStyle = 'rgba(168,130,221,0.3)'; // Purple area
+        ctx.strokeStyle = 'rgba(168,130,221,0.8)';
+    } else {
+        ctx.fillStyle = 'rgba(240,122,122,0.3)'; // Red if flipped
+        ctx.strokeStyle = 'rgba(240,122,122,0.8)';
+    }
+    ctx.lineWidth = 1;
+    ctx.fill(); ctx.stroke();
+
+    // Draw vectors
+    drawArrow(ctx, cx, cy, ux, uy, '#e8c96d', 3, 12); // u
+    drawArrow(ctx, cx, cy, vx, vy, '#7eb8f7', 3, 12); // v
+
+    // Calculate text stats
+    const magU = Math.sqrt(u[0]*u[0] + u[1]*u[1]);
+    const magV = Math.sqrt(v[0]*v[0] + v[1]*v[1]);
+    const dot = u[0]*v[0] + u[1]*v[1];
+    const cosTh = dot / (magU * magV);
+    const angleRad = Math.acos(Math.max(-1, Math.min(1, cosTh)));
+    const angleDeg = angleRad * 180 / Math.PI;
+
+    // Update DOM
+    $('dtUx').textContent = u[0].toFixed(1);
+    $('dtUy').textContent = u[1].toFixed(1);
+    $('dtVx').textContent = v[0].toFixed(1);
+    $('dtVy').textContent = v[1].toFixed(1);
+    
+    $('dtResultAlg').textContent = det.toFixed(2);
+    $('dtMagU').textContent = magU.toFixed(2);
+    $('dtMagV').textContent = magV.toFixed(2);
+    $('dtAngle').textContent = angleDeg.toFixed(1);
+    
+    // Geometric area = ||u|| ||v|| sin(theta)
+    const geomArea = magU * magV * Math.sin(angleRad);
+    // Use Math.abs for geometric text output since area is positive, but det can be negative
+    $('dtGeomResult').textContent = Math.abs(geomArea).toFixed(2);
+  }
+
+  function hitTest(sx, sy) {
+    const [ux, uy] = wToS(u[0], u[1], cx, cy, sc);
+    const [vx, vy] = wToS(v[0], v[1], cx, cy, sc);
+    if (Math.hypot(sx - ux, sy - uy) < 20) return 'u';
+    if (Math.hypot(sx - vx, sy - vy) < 20) return 'v';
+    return null;
+  }
+
+  cv.addEventListener('mousedown', e => {
+    const rect = cv.getBoundingClientRect();
+    const sx = (e.clientX - rect.left) * cv.width / rect.width;
+    const sy = (e.clientY - rect.top) * cv.height / rect.height;
+    dragging = hitTest(sx, sy);
+  });
+
+  window.addEventListener('mouseup', () => dragging = null);
+  
+  cv.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const rect = cv.getBoundingClientRect();
+    const sx = (e.clientX - rect.left) * cv.width / rect.width;
+    const sy = (e.clientY - rect.top) * cv.height / rect.height;
+    const [wx, wy] = sToW(sx, sy, cx, cy, sc);
+    
+    const snapX = Math.round(wx * 10) / 10;
+    const snapY = Math.round(wy * 10) / 10;
+    
+    if (dragging === 'u') u = [snapX, snapY];
+    if (dragging === 'v') v = [snapX, snapY];
+    render();
+  });
+
+  render();
+})();
+
+// ─────────────────────────────────────────────
+// SCROLL REVEAL + NAV DOTS
+// ─────────────────────────────────────────────
+const sections = Array.from(document.querySelectorAll('section'));
+const navDots = Array.from(document.querySelectorAll('.nav-dot'));
+
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if(e.isIntersecting){
+      e.target.classList.add('visible');
+      const idx = sections.indexOf(e.target);
+      if(idx >= 0 && idx < navDots.length) {
+        navDots.forEach((d,i) => d.classList.toggle('active', i===idx));
+      }
+    }
+  });
+}, { threshold: 0.15 });
+
+sections.forEach(s => observer.observe(s));
+
+navDots.forEach((dot, i) => {
+  dot.addEventListener('click', () => {
+    sections[i].scrollIntoView({ behavior: 'smooth' });
+  });
+});
+
+// make hero visible immediately
+sections[0].classList.add('visible');
+</script>
+</body>
+</html>

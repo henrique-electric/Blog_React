@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Integration Techniques — Deep Dive</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
+
+<script>
+  MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']]
+    },
+    svg: {
+      fontCache: 'global'
+    }
+  };
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<style>
+:root {
+  /* Colors */
+  --bg:       #f7f4ee;
+  --bg2:      #efebe2;
+  --bg-card:  #ffffff;
+  --ink:      #1a1810;
+  --ink2:     #3d3a30;
+  --ink3:     #7a7060;
+  --rule:     #d4cec0;
+  --gold:     #b5822a;
+  --gold-lt:  #e8c87a;
+  --teal:     #2a7a6a;
+  --teal-lt:  #7ac8b4;
+  --rose:     #8a2a3a;
+  --rose-lt:  #e87a8a;
+  --blue:     #2a4a7a;
+  --blue-lt:  #7aaae8;
+  
+  /* Canvas specific vars */
+  --canvas-bg:   #ffffff;
+  --grid-line:   #f0ede6;
+  --ax-line:     #b0aa98;
+  --ax-text:     #9a9280;
+  --shade-exact: rgba(42,122,106,0.12);
+  --blue-shade:  rgba(138,42,58,0.25);
+}
+
+[data-theme="dark"] {
+  --bg:       #161616;
+  --bg2:      #222222;
+  --bg-card:  #1e1e1e;
+  --ink:      #e4e0d8;
+  --ink2:     #b0a898;
+  --ink3:     #888070;
+  --rule:     #3d3a30;
+  --gold:     #d4a350;
+  --gold-lt:  #e8c87a;
+  --teal:     #4db6a1;
+  --teal-lt:  #7ac8b4;
+  --rose:     #cc6677;
+  --rose-lt:  #e87a8a;
+  --blue:     #6b9bed;
+  --blue-lt:  #7aaae8;
+
+  --canvas-bg:   #1a1a1a;
+  --grid-line:   #2a2a2a;
+  --ax-line:     #555555;
+  --ax-text:     #888888;
+  --shade-exact: rgba(77,182,161,0.15);
+  --blue-shade:  rgba(204,102,119,0.25);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg); color: var(--ink); font-family: 'Lora', Georgia, serif;
+  font-size: 16px; line-height: 1.75; transition: background-color 0.2s, color 0.2s;
+}
+
+/* ── HEADER ── */
+.site-header {
+  border-bottom: 2px solid var(--ink); padding: 2.5rem 2rem 2rem; display: flex;
+  align-items: flex-end; justify-content: space-between; gap: 2rem; flex-wrap: wrap;
+}
+.site-header .title-block h1 {
+  font-family: 'Cormorant Garamond', serif; font-size: clamp(2.4rem, 5vw, 4rem);
+  font-weight: 300; letter-spacing: -0.02em; line-height: 1; color: var(--ink);
+}
+.site-header .title-block h1 em { font-style: italic; color: var(--rose); }
+.site-header .title-block .subtitle {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; text-transform: uppercase;
+  letter-spacing: 0.14em; color: var(--ink3); margin-top: 0.5rem;
+}
+.header-right { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+.header-formula {
+  font-size: 1.2rem; color: var(--ink2); white-space: nowrap;
+  border-left: 3px solid var(--rose); padding-left: 1rem;
+}
+
+/* ── NAV TABS ── */
+.tab-nav {
+  display: flex; border-bottom: 1px solid var(--rule); background: var(--bg);
+  position: sticky; top: 0; z-index: 50; overflow-x: auto; scrollbar-width: none;
+}
+.tab-nav::-webkit-scrollbar { display: none; }
+.tab-btn {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--ink3); background: none; border: none;
+  border-bottom: 2px solid transparent; padding: 0.9rem 1.4rem; cursor: pointer;
+  white-space: nowrap; transition: color 0.15s, border-color 0.15s; flex-shrink: 0;
+}
+.tab-btn:hover { color: var(--ink); }
+.tab-btn.active { color: var(--rose); border-bottom-color: var(--rose); }
+
+/* ── PANELS ── */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── INTERACTIVE ── */
+.interactive-layout {
+  display: grid; grid-template-columns: 1fr 350px; gap: 0; min-height: 600px;
+}
+@media (max-width: 820px) { .interactive-layout { grid-template-columns: 1fr; } }
+.viz-pane { border-right: 1px solid var(--rule); padding: 1.5rem; position: relative; }
+.canvas-container {
+  position: relative; background: var(--canvas-bg); border: 1px solid var(--rule);
+  border-radius: 2px; overflow: hidden;
+}
+canvas { display: block; width: 100%; height: auto; }
+.viz-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; margin-top: 1rem; }
+.stat-chip { background: var(--bg-card); border: 1px solid var(--rule); padding: 0.7rem 0.8rem; border-radius: 2px; }
+.stat-chip .lbl { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink3); }
+.stat-chip .val { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-style: italic; color: var(--gold); line-height: 1.2; margin-top: 0.1rem; }
+.stat-chip.xdomain .val { color: var(--teal); }
+.stat-chip.udomain .val { color: var(--rose); }
+
+.ctrl-pane { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.4rem; overflow-y: auto; }
+.ctrl-head {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; text-transform: uppercase;
+  letter-spacing: 0.12em; color: var(--ink3); margin-bottom: 0.8rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--rule);
+}
+.btn-group { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.grp-btn {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; padding: 0.4rem 0.7rem;
+  background: var(--bg-card); border: 1px solid var(--rule); color: var(--ink3); border-radius: 2px;
+  cursor: pointer; transition: all 0.12s;
+}
+.grp-btn:hover { border-color: var(--ink2); color: var(--ink2); }
+.grp-btn.active { background: var(--rose); border-color: var(--rose); color: #fff; }
+.grp-btn.fn-btn { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 0.95rem; }
+.grp-btn.fn-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+.slider-block { margin-bottom: 0.9rem; }
+.slider-label { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--ink2); margin-bottom: 0.4rem; }
+.slider-label .sval { font-family: 'JetBrains Mono', monospace; color: var(--rose); }
+input[type=range] { -webkit-appearance: none; width: 100%; height: 2px; background: var(--rule); border-radius: 1px; outline: none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%; background: var(--rose); cursor: pointer; border: 2px solid var(--bg); box-shadow: 0 0 0 1px var(--rose); }
+
+.inline-formula {
+  background: var(--bg-card); border: 1px solid var(--rule); border-left: 3px solid var(--rose);
+  padding: 0.8rem 1rem; color: var(--ink2); border-radius: 0 2px 2px 0; overflow-x: auto;
+}
+
+/* ── CONTENT PANELS ── */
+.theory-body, .intuition-body, .steps-body, .gloss-body, .strategy-body { max-width: 850px; margin: 0 auto; padding: 3rem 2rem 4rem; }
+h2 { font-family: 'Cormorant Garamond', serif; font-size: 2rem; font-weight: 400; color: var(--ink); margin: 3rem 0 1rem; border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem; }
+h2:first-child { margin-top: 0; }
+h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; font-style: italic; font-weight: 400; color: var(--rose); margin: 2rem 0 0.6rem; }
+p { color: var(--ink2); margin-bottom: 1.2rem; line-height: 1.8; }
+ul, ol { color: var(--ink2); margin-bottom: 1.2rem; padding-left: 1.5rem; line-height: 1.8; }
+li { margin-bottom: 0.5rem; }
+
+.definition, .insight-box, .warning-box { background: var(--bg-card); border: 1px solid var(--rule); padding: 1.5rem 1.8rem; margin: 2rem 0; border-radius: 0 3px 3px 0; }
+.definition { border-left: 4px solid var(--gold); }
+.insight-box { border-left: 4px solid var(--teal); background: rgba(42,122,106,0.05); }
+.warning-box { border-left: 4px solid var(--rose); background: rgba(138,42,58,0.05); }
+.def-title, .ins-title, .warn-title { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 0.8rem; }
+.def-title { color: var(--gold); }
+.ins-title { color: var(--teal); }
+.warn-title { color: var(--rose); }
+
+.math-display {
+  text-align: center; padding: 1.5rem 1rem; background: var(--bg2); border: 1px solid var(--rule);
+  border-radius: 3px; margin: 2rem 0; color: var(--ink); overflow-x: auto;
+}
+
+.note-box { background: var(--bg2); border: 1px solid var(--rule); padding: 1.2rem 1.5rem; border-radius: 3px; margin: 1.5rem 0; font-size: 0.95rem; color: var(--ink3); }
+
+.analogy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 2rem 0; }
+@media (max-width: 650px) { .analogy-grid { grid-template-columns: 1fr; } }
+.analogy-card { background: var(--bg-card); border: 1px solid var(--rule); padding: 1.5rem; border-radius: 3px; }
+.analogy-card .ac-label { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink3); margin-bottom: 0.6rem; }
+.analogy-card .ac-title { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1.2rem; color: var(--rose); margin-bottom: 0.6rem; }
+
+/* ── STEP-BY-STEP ── */
+.step-card { display: grid; grid-template-columns: 56px 1fr; gap: 1.2rem; margin-bottom: 2.5rem; position: relative; }
+.step-card::before { content: ''; position: absolute; left: 27px; top: 56px; bottom: -2.5rem; width: 1px; background: var(--rule); }
+.step-card:last-child::before { display: none; }
+.step-num { width: 56px; height: 56px; border-radius: 50%; background: var(--rose); color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; font-style: italic; flex-shrink: 0; }
+.step-content .math-inline { background: var(--bg2); border: 1px solid var(--rule); border-left: 3px solid var(--rose); padding: 0.7rem 1rem; border-radius: 0 2px 2px 0; margin: 0.8rem 0; color: var(--ink2); overflow-x: auto; }
+.step-content .highlight { background: rgba(138,42,58,0.08); border: 1px solid rgba(138,42,58,0.25); padding: 0.7rem 1rem; border-radius: 3px; margin: 0.8rem 0; font-size: 0.95rem; color: var(--ink2); }
+
+/* ── STRATEGY MAP ── */
+.flow-card { background: var(--bg-card); border: 1px solid var(--rule); border-radius: 3px; padding: 1.8rem; margin-bottom: 2rem; border-left: 4px solid var(--blue); }
+.flow-title { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-style: italic; color: var(--ink); margin-bottom: 0.8rem; }
+.flow-desc { font-size: 0.95rem; color: var(--ink2); line-height: 1.7; }
+
+/* ── GLOSSARY ── */
+.gloss-item { display: grid; grid-template-columns: 220px 1fr; gap: 1.5rem; padding: 1.5rem 0; border-bottom: 1px solid var(--rule); align-items: start; }
+.gloss-item:last-child { border-bottom: none; }
+.gloss-term { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1.3rem; color: var(--rose); }
+.gloss-def { color: var(--ink2); font-size: 0.95rem; line-height: 1.7; }
+.symbol { display: inline-block; font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1.1rem; color: var(--ink); background: var(--bg2); padding: 0 0.4rem; border-radius: 2px; margin: 0 2px; }
+@media (max-width: 520px) { .gloss-item { grid-template-columns: 1fr; gap: 0.5rem; } }
+
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="title-block">
+    <h1>Integration <em>Techniques</em></h1>
+    <div class="subtitle">Undoing the derivative, algebraically and geometrically</div>
+  </div>
+  <div class="header-right">
+    <div class="header-formula">
+      $$ \int f(g(x))g'(x) dx = \int f(u) du $$
+    </div>
+    <button id="themeToggle" class="grp-btn">🌓 Theme</button>
+  </div>
+</header>
+
+<nav class="tab-nav">
+  <button class="tab-btn active" data-tab="interactive">① The U-Sub Visualizer</button>
+  <button class="tab-btn" data-tab="intuition">② Deep Intuition</button>
+  <button class="tab-btn" data-tab="theory">③ Core Theory</button>
+  <button class="tab-btn" data-tab="steps">④ Step-by-Step</button>
+  <button class="tab-btn" data-tab="strategy">⑤ Strategy Map</button>
+  <button class="tab-btn" data-tab="glossary">⑥ Glossary</button>
+</nav>
+
+<div class="tab-panel active" id="tab-interactive">
+  <div class="interactive-layout">
+    <div class="viz-pane">
+      <div class="canvas-container">
+        <canvas id="mainCanvas" width="680" height="460"></canvas>
+      </div>
+      <div class="viz-stats">
+        <div class="stat-chip xdomain">
+          <div class="lbl">Area in $X$-Space</div>
+          <div class="val" id="areaXVal">—</div>
+        </div>
+        <div class="stat-chip udomain">
+          <div class="lbl">Area in $U$-Space</div>
+          <div class="val" id="areaUVal">—</div>
+        </div>
+        <div class="stat-chip">
+          <div class="lbl">Status</div>
+          <div class="val" style="color: var(--teal); font-size: 1.2rem; margin-top: 0.4rem;">Area Preserved</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ctrl-pane">
+
+      <div class="ctrl-section">
+        <div class="ctrl-head">Original Integral</div>
+        <div class="btn-group">
+          <button class="grp-btn fn-btn active" data-fn="0">$\int 2x \cos(x^2) dx$</button>
+          <button class="grp-btn fn-btn" data-fn="1">$\int 3x^2 e^{x^3} dx$</button>
+          <button class="grp-btn fn-btn" data-fn="2">$\int \frac{2x}{x^2+1} dx$</button>
+        </div>
+      </div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-head">View Domain</div>
+        <div class="btn-group" style="display: flex; gap: 0;">
+          <button class="grp-btn active" style="flex: 1; border-radius: 2px 0 0 2px;" data-domain="x">X-Space (Original)</button>
+          <button class="grp-btn" style="flex: 1; border-radius: 0 2px 2px 0;" data-domain="u">U-Space (Transformed)</button>
+        </div>
+        <div style="margin-top:0.8rem; font-size:0.78rem; color:var(--ink3); font-style:italic;">
+          Observe how the complex function in $X$-space becomes a simple function in $U$-space, but the total accumulated area remains identical.
+        </div>
+      </div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-head">Upper Limit ($b$)</div>
+        <div class="slider-block">
+          <div class="slider-label">
+            <span>Integrate from $0$ to $b$</span>
+            <span class="sval" id="bVal">1.50</span>
+          </div>
+          <input type="range" id="bSlider" min="0.1" max="2.5" step="0.05" value="1.5">
+        </div>
+      </div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-head">Live Transformation</div>
+        <div class="inline-formula" id="liveFormula">
+          </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-intuition">
+  <div class="intuition-body">
+
+    <h2>The Reverse Engineering of Calculus</h2>
+
+    <p>There is a fundamental asymmetry in calculus. Differential calculus is entirely procedural and deterministic. If you are given any combination of functions—no matter how deeply nested or multiplied—you can apply mechanical rules (the Product Rule, the Quotient Rule, the Chain Rule) to reliably grind out the exact derivative. It is an act of mathematical entropy: taking something organized and shattering it into a complex sum of parts.</p>
+
+    <p>Integral calculus is the exact opposite. It is the art of un-shattering the glass. When we are presented with an integrand, we are looking at the wreckage left behind by differentiation. There is no single algorithmic crank we can turn to find the anti-derivative. Instead, our goal is to examine the wreckage, identify which specific derivative rule caused it, and carefully run that rule backwards.</p>
+
+    <p>Every major integration technique you will learn is simply a derivative rule running in reverse. By understanding the forward process deeply, the backward process stops feeling like a collection of random magic tricks and starts feeling like logical forensic reconstruction.</p>
+
+    <div class="insight-box">
+      <div class="ins-title">The Master Translation</div>
+      <p>Integration is not about memorizing isolated formulas from a textbook. It is about recognizing patterns of differentiation. If you see an inner function and its derivative sitting right next to it, you are looking at the direct aftermath of the <strong>Chain Rule</strong>. If you see two unrelated functions multiplied together, you are looking at the aftermath of the <strong>Product Rule</strong>.</p>
+    </div>
+
+    <h2>U-Substitution: Undoing the Chain Rule</h2>
+
+    <p>The Chain Rule is used to differentiate composite functions (functions inside other functions, like Russian nesting dolls). It states that $\frac{d}{dx} f(g(x)) = f'(g(x)) \cdot g'(x)$. Notice the specific, highly recognizable signature it leaves behind: an outer function evaluated at an inner function, entirely multiplied by the exact derivative of that inner function.</p>
+
+    <p>U-Substitution is a mathematical way of cleaning up this specific mess. By deliberately defining a new variable $u = g(x)$, we can compress the complicated $x$-space expression into a simple, elegant $u$-space expression.</p>
+    
+    <p>Geometrically, this is far more profound than just a notational trick. We are taking a stretched, distorted graph in the $xy$-plane and mapping it onto a clean, standardized grid in the $uv$-plane. The differential term $du = g'(x)dx$ acts as a continuous scaling factor. Because the horizontal axis compresses exactly as much as the vertical axis stretches, this scaling factor guarantees that while the visual shape of the graph completely changes, the total <strong>physical area under the curve is perfectly preserved</strong>.</p>
+
+    <h2>The Multivariable Leap: The Jacobian</h2>
+
+    <p>In standard 1D calculus, the term $du = g'(x)dx$ acts as a linear scaling factor. It answers a simple question: <em>"If I stretch this 1D number line according to $g(x)$, how much does a tiny segment $\Delta x$ stretch or shrink?"</em></p>
+
+    <p>But what happens when you substitute variables in 2D or 3D space? For example, moving from a rigid, square Cartesian grid $(x, y)$ to a circular Polar grid $(r, \theta)$. The "rectangles" of our space are no longer uniform squares; they warp, stretch, and curve into fan-like shapes depending on how far they are from the origin.</p>
+
+    <p>The <strong>Jacobian Determinant</strong> is the multivariable equivalent of $g'(x)$. It is a mathematical multiplier that tracks exactly how much a tiny, localized patch of 2D area (or 3D volume) stretches or squishes during a coordinate transformation. It guarantees that when you map a complex curved region into a flat, easy-to-integrate rectangle in $u-v$ space, the underlying physical quantity (mass, charge, probability) is perfectly preserved.</p>
+
+    <h2>Integration by Parts: Undoing the Product Rule</h2>
+
+    <p>The Product Rule tells us how to differentiate two things multiplied together: $(uv)' = u'v + uv'$. If we integrate both sides of this equation with respect to $x$, the Fundamental Theorem of Calculus tells us the integral of the derivative is just the original function, so we get $uv = \int v du + \int u dv$. By simply rearranging this algebraic equation, we yield the famous Integration by Parts formula:</p>
+
+    <div class="math-display">
+      $$ \int u \, dv = uv - \int v \, du $$
+    </div>
+
+    <p>What does this mean intuitively and geometrically? Imagine a rectangle graphed in the first quadrant. Its width along the x-axis is a function $u(x)$ and its height along the y-axis is a function $v(x)$. The total area of this rectangle at any point is simply base times height: $u \cdot v$.</p>
+    
+    <p>If you draw a curve passing through this rectangle from the origin to the top right corner, that curve splits the total rectangular area into two distinct regions. One region represents the area "under" the curve (with respect to the x-axis, represented by $\int v \, du$) and the other region represents the area to the "left" of the curve (with respect to the y-axis, represented by $\int u \, dv$). The Integration by Parts formula simply states a geometric truism: the total area of the rectangle ($uv$) equals the sum of its two split parts.</p>
+
+    <div class="analogy-grid">
+      <div class="analogy-card">
+        <div class="ac-label">U-Substitution</div>
+        <div class="ac-title">Changing the Lens</div>
+        <p>Looking through a distorted funhouse mirror, an object looks incredibly complex. U-sub is like swapping the funhouse mirror for a normal piece of flat glass. The object itself (the area) doesn't change mass or size, but your coordinate system does, making it mathematically easy to measure.</p>
+      </div>
+      <div class="analogy-card">
+        <div class="ac-label">The Jacobian</div>
+        <div class="ac-title">The Area Exchange Rate</div>
+        <p>Think of changing coordinates like changing global currencies. The Jacobian is the localized exchange rate. If 1 square unit in $(u,v)$ space maps to 3 square units in $(x,y)$ space, the Jacobian is exactly 3. It ensures no mathematical "value" is lost in the conversion process.</p>
+      </div>
+      <div class="analogy-card">
+        <div class="ac-label">Integration by Parts</div>
+        <div class="ac-title">Trading Problems</div>
+        <p>You have a difficult, unsolvable integral $\int u dv$. By applying this formula, you trade it for a completely different integral $\int v du$. If you chose your $u$ and $dv$ wisely, the new integral you just received is much easier to solve than the original one you traded away.</p>
+      </div>
+      <div class="analogy-card">
+        <div class="ac-label">Trig Substitution</div>
+        <div class="ac-title">Pythagorean Portals</div>
+        <p>When you see $\sqrt{a^2 - x^2}$, algebra fails. You cannot distribute a root across subtraction. But geometry succeeds. By substituting $x = a \sin(\theta)$, you teleport the math into trigonometry, where the Pythagorean identity $\cos^2(\theta) = 1 - \sin^2(\theta)$ collapses the two terms into one, destroying the root.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-theory">
+  <div class="theory-body">
+
+    <h2>1. The Substitution Rule (U-Sub)</h2>
+
+    <p>The formal definition states: If $u = g(x)$ is a differentiable function whose range is an interval $I$, and $f$ is continuous on $I$, then we can substitute $u$ into the integral to reverse the Chain Rule.</p>
+
+    <div class="math-display">
+      $$ \int f(g(x))g'(x) dx = \int f(u) du $$
+    </div>
+
+    <p><strong>Definite Integrals and Limits:</strong> When transforming a definite integral, a critical mistake students make is forgetting that the original limits of integration are $x$-values. If you change the variables in the integrand to $u$, you <em>must</em> also transform the limits to $u$-values. If $x$ ranges from $a$ to $b$, then $u$ will range from $g(a)$ to $g(b)$. Doing this means you never have to substitute $x$ back into the equation at the end.</p>
+
+    <div class="math-display">
+      $$ \int_a^b f(g(x))g'(x) dx = \int_{g(a)}^{g(b)} f(u) du $$
+    </div>
+    
+    <h3>1b. Multivariable Substitution (The Jacobian)</h3>
+
+    <p>When transforming multiple variables simultaneously, the simple 1D derivative $g'(x)$ is replaced by the <strong>Jacobian Matrix</strong>. This matrix contains all first-order partial derivatives of the coordinate transformation, essentially capturing how the space skews in every direction. The necessary scaling factor is the absolute value of its determinant, $|J|$.</p>
+
+    <p>If the transformation $x = x(u,v)$ and $y = y(u,v)$ maps a region $S$ in the $uv$-plane to a region $R$ in the $xy$-plane, the substitution rule expands to:</p>
+
+    <div class="math-display">
+      $$ \iint_R f(x,y) \, dx \, dy = \iint_S f(x(u,v), y(u,v)) \left| \frac{\partial(x,y)}{\partial(u,v)} \right| \, du \, dv $$
+    </div>
+
+    <p>Where the Jacobian determinant is formally defined as the cross-multiplication of the partial derivatives:</p>
+
+    <div class="math-display">
+      $$ J(u,v) = \frac{\partial(x,y)}{\partial(u,v)} = \det \begin{bmatrix} \frac{\partial x}{\partial u} & \frac{\partial x}{\partial v} \\ \frac{\partial y}{\partial u} & \frac{\partial y}{\partial v} \end{bmatrix} = \frac{\partial x}{\partial u}\frac{\partial y}{\partial v} - \frac{\partial x}{\partial v}\frac{\partial y}{\partial u} $$
+    </div>
+
+    <div class="note-box">
+      <strong>Classic Example (Polar Coordinates):</strong> When converting a double integral from Cartesian $(x,y)$ coordinates to Polar $(r,\theta)$ coordinates using the standard transformations $x = r \cos(\theta)$ and $y = r \sin(\theta)$, calculating this determinant yields exactly $J = r$. This is the formal mathematical reason why the area differential $dx \, dy$ becomes $r \, dr \, d\theta$ rather than just $dr \, d\theta$.
+    </div>
+
+    <h2>2. Integration by Parts</h2>
+
+    <p>This technique is based entirely on the product rule for derivatives. If $u$ and $v$ are differentiable functions of $x$, their relationship can be re-written to solve for one of the integrals:</p>
+
+    <div class="math-display">
+      $$ \int u \, dv = uv - \int v \, du $$
+    </div>
+
+    <div class="note-box">
+      <strong>The LIATE / ILATE Heuristic:</strong> Choosing the right $u$ is the entire battle. To choose $u$, pick the function that comes first in this hierarchy (because these functions tend to get simpler when differentiated, leaving a simpler $\int v du$ behind):<br><br>
+      <strong>L</strong>ogarithmic (e.g., $\ln x$)<br>
+      <strong>I</strong>nverse Trig (e.g., $\arctan x$)<br>
+      <strong>A</strong>lgebraic (e.g., $x^2, x^3$)<br>
+      <strong>T</strong>rigonometric (e.g., $\sin x, \cos x$)<br>
+      <strong>E</strong>xponential (e.g., $e^x$)
+    </div>
+    
+    <p><strong>The Tabular Method:</strong> For integrals where one term is an algebraic polynomial (like $x^3$) and the other is easily integrable (like $e^x$ or $\sin x$), repeatedly applying Integration by Parts is tedious. The Tabular Method (or Tic-Tac-Toe method) is a highly efficient shortcut where you create a column for differentiating $u$ down to zero, and a column for continuously integrating $dv$, then cross-multiply them with alternating $+/-$ signs.</p>
+
+    <h2>3. Partial Fraction Decomposition</h2>
+
+    <p>This algebraic technique is used to integrate rational functions $\frac{P(x)}{Q(x)}$ where the degree of the numerator $P$ is strictly less than the degree of the denominator $Q$. If it is not, you must use polynomial long division first. The strategy is to factor the denominator $Q(x)$ completely, and decompose the complex fraction into a sum of simpler fractions that can be integrated into natural logarithms or arctangents.</p>
+    <ul>
+      <li><strong>Distinct Linear Factors:</strong> $\frac{1}{(ax+b)(cx+d)} = \frac{A}{ax+b} + \frac{B}{cx+d}$</li>
+      <li><strong>Repeated Linear Factors:</strong> $\frac{1}{(ax+b)^2} = \frac{A}{ax+b} + \frac{B}{(ax+b)^2}$</li>
+      <li><strong>Irreducible Quadratic Factors:</strong> $\frac{1}{ax^2+bx+c} = \frac{Ax+B}{ax^2+bx+c}$ (where $b^2 - 4ac < 0$)</li>
+    </ul>
+
+    <h2>4. Trigonometric Substitution</h2>
+    
+    <p>This is utilized when an integrand contains radical expressions of specific Pythagorean forms. It leverages the fundamental trigonometric identities to collapse a binomial under a square root into a single monomial, which can then be perfectly square-rooted.</p>
+    
+    <table style="width:100%; border-collapse:collapse; margin:1.5rem 0; font-size:0.95rem;">
+      <thead>
+        <tr>
+          <th style="font-family:'JetBrains Mono'; color:var(--ink3); padding:0.8rem; border-bottom:2px solid var(--rule); text-align:left;">Expression</th>
+          <th style="font-family:'JetBrains Mono'; color:var(--ink3); padding:0.8rem; border-bottom:2px solid var(--rule); text-align:left;">Substitution</th>
+          <th style="font-family:'JetBrains Mono'; color:var(--ink3); padding:0.8rem; border-bottom:2px solid var(--rule); text-align:left;">Identity Used</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding:1rem; border-bottom:1px solid var(--rule);">$\sqrt{a^2 - x^2}$</td>
+          <td style="padding:1rem; border-bottom:1px solid var(--rule);">$x = a \sin(\theta)$</td>
+          <td style="padding:1rem; border-bottom:1px solid var(--rule);">$1 - \sin^2(\theta) = \cos^2(\theta)$</td>
+        </tr>
+        <tr>
+          <td style="padding:1rem; border-bottom:1px solid var(--rule);">$\sqrt{a^2 + x^2}$</td>
+          <td style="padding:1rem; border-bottom:1px solid var(--rule);">$x = a \tan(\theta)$</td>
+          <td style="padding:1rem; border-bottom:1px solid var(--rule);">$1 + \tan^2(\theta) = \sec^2(\theta)$</td>
+        </tr>
+        <tr>
+          <td style="padding:1rem; border-bottom:1px solid var(--rule);">$\sqrt{x^2 - a^2}$</td>
+          <td style="padding:1rem; border-bottom:1px solid var(--rule);">$x = a \sec(\theta)$</td>
+          <td style="padding:1rem; border-bottom:1px solid var(--rule);">$\sec^2(\theta) - 1 = \tan^2(\theta)$</td>
+        </tr>
+      </tbody>
+    </table>
+
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-steps">
+  <div class="steps-body">
+
+    <h2 style="margin-top: 0;">Example 1: U-Substitution</h2>
+    <div style="margin-bottom:2rem;">
+      <p style="color:var(--ink3); font-size:0.85rem; font-style:italic;">Evaluate the indefinite integral $\int 2x \cos(x^2) dx$</p>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h3>Identify the Inner Function</h3>
+        <p>We look for an "inner" function whose derivative is multiplying the rest of the expression. Here, the inner function tucked inside the cosine is $x^2$. The derivative of $x^2$ is $2x$, which matches the term sitting outside the cosine.</p>
+        <div class="math-inline">$$ \text{Let } u = x^2 $$</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h3>Compute the Differential $du$</h3>
+        <p>Take the derivative of $u$ with respect to $x$ to find the scaling factor, and algebraically solve for $du$.</p>
+        <div class="math-inline">$$ \frac{du}{dx} = 2x \implies du = 2x \, dx $$</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h3>Substitute and Integrate</h3>
+        <p>Replace $x^2$ with $u$, and replace the entire $2x \, dx$ block with $du$. The integral collapses from a complex composite function into a basic trig identity.</p>
+        <div class="math-inline">$$ \int \cos(u) \, du = \sin(u) + C $$</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h3>Back-Substitute</h3>
+        <p>The original problem was posed in terms of $x$, so our final mathematical answer must be provided in terms of $x$. Replace $u$ with the original $x^2$.</p>
+        <div class="highlight">
+          <strong>Final Answer:</strong> $\sin(x^2) + C$
+        </div>
+      </div>
+    </div>
+
+    <h2 style="margin-top: 3rem;">Example 2: Integration by Parts</h2>
+    <div style="margin-bottom:2rem;">
+      <p style="color:var(--ink3); font-size:0.85rem; font-style:italic;">Evaluate the indefinite integral $\int x e^x dx$</p>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h3>Assign $u$ and $dv$</h3>
+        <p>We have a product of an algebraic term ($x$) and an exponential term ($e^x$). Using the LIATE rule, Algebraic comes before Exponential. Therefore, we let $u$ equal the algebraic term, and $dv$ equals everything that remains.</p>
+        <div class="math-inline">$$ u = x \quad \text{and} \quad dv = e^x dx $$</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h3>Differentiate $u$ and Integrate $dv$</h3>
+        <p>Find $du$ by taking the derivative of $u$, and find $v$ by taking the anti-derivative of $dv$.</p>
+        <div class="math-inline">$$ du = 1 dx \quad \text{and} \quad v = e^x $$</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h3>Apply the Formula</h3>
+        <p>Plug the four distinct parts ($u, v, du, dv$) into the Integration by Parts formula: $\int u dv = uv - \int v du$.</p>
+        <div class="math-inline">$$ \int x e^x dx = x e^x - \int e^x dx $$</div>
+      </div>
+    </div>
+    
+    <div class="step-card">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h3>Solve the Simpler Integral</h3>
+        <p>The trade was successful. The new integral we are left with, $\int e^x dx$, is completely trivial to solve. We just evaluate it to finish the problem.</p>
+        <div class="highlight">
+          <strong>Final Answer:</strong> $x e^x - e^x + C$
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-strategy">
+  <div class="strategy-body">
+
+    <h2 style="font-family:'Cormorant Garamond',serif; font-size:1.8rem; font-weight:400; margin-bottom:1.5rem;">How to Choose a Technique?</h2>
+    <p style="color:var(--ink3); font-size:1rem; margin-bottom:2.5rem;">Integration is fundamentally a pattern-recognition exercise. When faced with a difficult, unstructured integral in the wild, do not guess blindly. Systematically apply this hierarchy of strategies, starting from the simplest and moving toward the most complex.</p>
+
+    <div class="flow-card">
+      <div class="flow-title">1. Algebraic and Trigonometric Simplification</div>
+      <div class="flow-desc">
+        Before applying any calculus, ask yourself: <em>can I simplify this integrand using middle-school algebra or basic trigonometry?</em> This step is frequently skipped by students eager to do calculus, resulting in them turning a simple problem into a nightmare.
+        <ul>
+          <li><strong>Expand Polynomials:</strong> Multiply out brackets. $\int (x+1)^2 dx$ is much easier if written as $\int (x^2 + 2x + 1) dx$.</li>
+          <li><strong>Separate Fractions:</strong> If you have a single term in the denominator, split it up. $\int \frac{x^2+1}{x} dx$ becomes $\int (x + \frac{1}{x}) dx$, which is instantly solvable.</li>
+          <li><strong>Trig Identities:</strong> Use $\sin^2x + \cos^2x = 1$ or $\frac{\sin x}{\cos x} = \tan x$ to collapse complex fractions into single functions.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <div class="flow-title">2. Look for U-Substitution (The Inner-Outer Pattern)</div>
+      <div class="flow-desc">
+        If basic algebra fails, U-Substitution should <strong>always</strong> be your first calculus technique to attempt. It is the most common integration technique in mathematics.
+        <br><br>
+        Scan the integrand: Does a function and its derivative (or a constant multiple of its derivative) both appear? 
+        <ul>
+          <li>Look <em>inside</em> parentheses, <em>under</em> square roots, or <em>up</em> in exponents to find your $u$.</li>
+          <li>For example, in $\int x^2 e^{x^3} dx$, the inner function in the exponent is $x^3$, and its derivative $3x^2$ is sitting right next to it (off by a constant multiplier of 3, which is easily fixed). This is a prime candidate for U-Sub.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <div class="flow-title">3. Classify by the Function Family</div>
+      <div class="flow-desc">
+        If neither simplification nor U-Substitution works, you must look at the "shape" of the functions involved to categorize the problem and select the correct heavy-duty tool.
+        <ul style="margin-top: 1rem;">
+          <li style="margin-bottom:0.8rem;"><strong>Products of unrelated functions:</strong> If you have a polynomial multiplied by a trig function (e.g., $x \sin x$) or an exponential multiplied by a log, they have no derivative relationship. You must use <strong>Integration by Parts</strong> to separate them.</li>
+          <li style="margin-bottom:0.8rem;"><strong>Rational functions (Polynomial over Polynomial):</strong> If you have a fraction like $\frac{3x+2}{x^2 - 4}$, and U-Sub fails because the top isn't the derivative of the bottom, you must factor the denominator and use <strong>Partial Fractions</strong>.</li>
+          <li style="margin-bottom:0.8rem;"><strong>Radicals containing quadratics:</strong> If you see forms like $\sqrt{a^2 - x^2}$, $\sqrt{x^2 + a^2}$, or $\sqrt{x^2 - a^2}$, standard algebra cannot resolve the root. You must use <strong>Trigonometric Substitution</strong> to leverage Pythagorean identities.</li>
+          <li style="margin-bottom:0.8rem;"><strong>Products of pure Sines/Cosines:</strong> Integrals like $\int \sin^2(x)\cos^3(x)dx$. You must peel off one $\sin x$ or $\cos x$ to serve as your $du$, and use the identity $\sin^2x + \cos^2x = 1$ to convert the rest, followed by standard U-Sub.</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="flow-card">
+      <div class="flow-title">4. Advanced Maneuvers and Manipulation</div>
+      <div class="flow-desc">
+        If the integral fits into none of the above categories, you are dealing with a hostile integrand that requires creative mathematical manipulation to force it into a recognizable shape.
+        <ul>
+          <li><strong>Complete the Square:</strong> If you have an ugly quadratic in the denominator like $\frac{1}{x^2 + 4x + 13}$, completing the square turns it into $\frac{1}{(x+2)^2 + 9}$, which can now be solved using an arctangent U-sub.</li>
+          <li><strong>Multiply by a Clever Form of 1:</strong> Sometimes multiplying the top and bottom by the conjugate (e.g., $\frac{1+\sin x}{1+\sin x}$) forces a difference of squares ($\cos^2 x$) in the denominator, completely unlocking the problem.</li>
+          <li><strong>Looping Integration by Parts:</strong> Functions like $\int e^x \sin x dx$ will never simplify. Applying parts twice will result in the original integral appearing on the right side of the equation. You must then treat the integral itself as an algebraic variable and solve for it by adding it to the other side.</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-glossary">
+  <div class="gloss-body">
+    <h2 style="font-family:'Cormorant Garamond',serif; font-size:1.8rem; font-weight:400; margin-bottom:1.5rem; border-bottom:2px solid var(--ink); padding-bottom:0.5rem;">Glossary of Terms</h2>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Integrand</div>
+      <div class="gloss-def">The function inside the integral symbol that is to be integrated. In the expression $\int f(x) dx$, $f(x)$ is the integrand. It represents the rate of change you are attempting to accumulate.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Differential ($dx$, $du$)</div>
+      <div class="gloss-def">An infinitesimally small change in the variable. It identifies the variable of integration (telling you which variable to treat as changing and which to treat as constants) and is crucial for calculating the scaling factor properly during a substitution.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Constant of Integration ($C$)</div>
+      <div class="gloss-def">A constant added to the end of all indefinite integrals. Because the derivative of any constant (like 5, 10, or 100) is always zero, an infinite family of parallel functions all share the exact same derivative. The $+ C$ represents all possible original functions.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Dummy Variable</div>
+      <div class="gloss-def">The variable of integration in a definite integral. The numerical values of $\int_0^1 x^2 dx$ and $\int_0^1 u^2 du$ and $\int_0^1 t^2 dt$ are completely identical. The letter chosen is purely a placeholder and does not change the physical area.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">LIATE Rule</div>
+      <div class="gloss-def">A heuristic mnemonic used in Integration by Parts to intelligently choose which function should be $u$. You select the function type that appears first in the list: Logarithmic, Inverse Trig, Algebraic, Trigonometric, Exponential, because the higher up the list, the more likely the function is to simplify when taking its derivative.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Jacobian Matrix</div>
+      <div class="gloss-def">A matrix containing all first-order partial derivatives of a vector-valued function. It captures the best linear approximation of a complex coordinate transformation at any given point in multivariable space.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Jacobian Determinant ($|J|$)</div>
+      <div class="gloss-def">The absolute value of the determinant of the Jacobian Matrix. In multivariable integration, it acts as the necessary mathematical scaling factor to preserve physical area (in 2D) or volume (in 3D) when switching from one coordinate system to a completely different one (e.g., from Cartesian to Spherical).</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ═════════════ DATA ═════════════ */
+const FNS = [
+  { 
+    label: '\\int 2x \\cos(x^2) dx', 
+    domainX: { min: 0, max: 2.5, f: x => 2*x*Math.cos(x*x), F: x => Math.sin(x*x) },
+    domainU: { min: 0, max: 6.25, f: u => Math.cos(u), F: u => Math.sin(u) },
+    uStr: 'x^2'
+  },
+  { 
+    label: '\\int 3x^2 e^{x^3} dx', 
+    domainX: { min: 0, max: 1.5, f: x => 3*x*x*Math.exp(x*x*x), F: x => Math.exp(x*x*x) },
+    domainU: { min: 0, max: 3.375, f: u => Math.exp(u), F: u => Math.exp(u) },
+    uStr: 'x^3'
+  },
+  { 
+    label: '\\int \\frac{2x}{x^2+1} dx', 
+    domainX: { min: 0, max: 3, f: x => (2*x)/(x*x+1), F: x => Math.log(x*x+1) },
+    domainU: { min: 1, max: 10, f: u => 1/u, F: u => Math.log(u) },
+    uStr: 'x^2+1'
+  }
+];
+
+let S = { fnIdx:0, domain:'x', bX: 1.5 };
+
+/* ═════════════ THEME TOGGLE ═════════════ */
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const root = document.documentElement;
+  if (root.getAttribute('data-theme') === 'dark') {
+    root.removeAttribute('data-theme');
+  } else {
+    root.setAttribute('data-theme', 'dark');
+  }
+  drawMain();
+});
+
+/* ═════════════ MAIN CANVAS ═════════════ */
+function setupHighDPICanvas(canvasId, cssWidth, cssHeight) {
+  const cv = document.getElementById(canvasId);
+  const ctx = cv.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = cssWidth * dpr;
+  cv.height = cssHeight * dpr;
+  cv.style.width = cssWidth + 'px';
+  cv.style.height = cssHeight + 'px';
+  ctx.scale(dpr, dpr);
+  return { cv, ctx, W: cssWidth, H: cssHeight };
+}
+
+const { cv, ctx, W, H } = setupHighDPICanvas('mainCanvas', 680, 460);
+const PAD = {t:30, r:30, b:40, l:50};
+
+function drawMain(){
+  const fnData = FNS[S.fnIdx];
+  const isX = (S.domain === 'x');
+  
+  const rs = getComputedStyle(document.documentElement);
+  const cCanvasBg = rs.getPropertyValue('--canvas-bg').trim() || '#ffffff';
+  const cGridLine = rs.getPropertyValue('--grid-line').trim() || '#f0ede6';
+  const cAxLine = rs.getPropertyValue('--ax-line').trim() || '#b0aa98';
+  const cAxText = rs.getPropertyValue('--ax-text').trim() || '#9a9280';
+  const cTeal = rs.getPropertyValue('--teal').trim() || '#2a7a6a';
+  const cRose = rs.getPropertyValue('--rose').trim() || '#8a2a3a';
+  const cShadeX = rs.getPropertyValue('--shade-exact').trim() || 'rgba(42,122,106,0.15)';
+  const cShadeU = rs.getPropertyValue('--blue-shade').trim() || 'rgba(138,42,58,0.15)';
+
+  const activeColor = isX ? cTeal : cRose;
+  const activeShade = isX ? cShadeX : cShadeU;
+  
+  // Calculate U boundaries based on selected X boundary
+  let xBound = S.bX;
+  let uBound = 0;
+  if (S.fnIdx === 0) uBound = xBound * xBound;
+  if (S.fnIdx === 1) uBound = xBound * xBound * xBound;
+  if (S.fnIdx === 2) uBound = xBound * xBound + 1;
+
+  // Setup Viewport Extents
+  let xmin = 0, xmax = isX ? fnData.domainX.max : fnData.domainU.max;
+  if(S.fnIdx === 2 && !isX) xmin = 0; 
+
+  const drawFn = isX ? fnData.domainX.f : fnData.domainU.f;
+  
+  // Determine dynamic Y extents
+  let ymin = 0, ymax = 1;
+  for(let i=0; i<=100; i++){
+    let val = drawFn(xmin + (xmax-xmin)*i/100);
+    if(isFinite(val)) {
+      ymin = Math.min(ymin, val);
+      ymax = Math.max(ymax, val);
+    }
+  }
+  ymax = ymax > 0 ? ymax * 1.2 : ymax * 0.8;
+  ymin = ymin < 0 ? ymin * 1.2 : ymin - 0.5;
+
+  const toCanvas = (wx,wy) => {
+    const innerW = W - PAD.l - PAD.r, innerH = H - PAD.t - PAD.b;
+    return [PAD.l+(wx-xmin)/(xmax-xmin)*innerW, PAD.t+(1-(wy-ymin)/(ymax-ymin))*innerH];
+  };
+
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=cCanvasBg;
+  ctx.fillRect(0,0,W,H);
+
+  ctx.strokeStyle=cGridLine;
+  ctx.lineWidth=1;
+  const ySteps = 5;
+  for(let gi=0; gi<=ySteps; gi++){
+    const valY = ymin + (ymax-ymin)*(gi/ySteps);
+    const [,cy]=toCanvas(0,valY);
+    ctx.beginPath();ctx.moveTo(PAD.l,cy);ctx.lineTo(W-PAD.r,cy);ctx.stroke();
+  }
+
+  ctx.save();
+  ctx.beginPath();
+  const startX = isX ? (S.fnIdx === 2 ? 0 : 0) : (S.fnIdx === 2 ? 1 : 0);
+  const endX = isX ? xBound : uBound;
+  
+  const [csX, csY] = toCanvas(startX, 0);
+  ctx.moveTo(csX, csY);
+  
+  const steps = 200;
+  for(let i=0; i<=steps; i++){
+    const wx = startX + (endX - startX)*(i/steps);
+    const wy = drawFn(wx);
+    if(isFinite(wy)) {
+      const [cx, cy] = toCanvas(wx, wy);
+      ctx.lineTo(cx, cy);
+    }
+  }
+  const [ceX, ceY] = toCanvas(endX, 0);
+  ctx.lineTo(ceX, ceY);
+  ctx.closePath();
+  ctx.fillStyle = activeShade;
+  ctx.fill();
+  ctx.restore();
+
+  const [,axY]=toCanvas(0,0);
+  const [ayX]=toCanvas(0,0);
+  ctx.strokeStyle=cAxLine; ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(PAD.l,axY);ctx.lineTo(W-PAD.r,axY);ctx.stroke(); 
+  if(ayX>=PAD.l&&ayX<=W-PAD.r){
+    ctx.beginPath();ctx.moveTo(ayX,PAD.t);ctx.lineTo(ayX,H-PAD.b);ctx.stroke(); 
+  }
+
+  ctx.strokeStyle=activeColor; ctx.lineWidth=3; ctx.lineJoin='round';
+  ctx.beginPath(); let started=false;
+  for(let i=0;i<=500;i++){
+    const wx = xmin + (xmax-xmin)*i/500; 
+    const wy = drawFn(wx);
+    if(!isFinite(wy)){started=false;continue;}
+    const [cx,cy]=toCanvas(wx,wy);
+    if(!started){ctx.moveTo(cx,cy);started=true;}else ctx.lineTo(cx,cy);
+  }
+  ctx.stroke();
+
+  const [mx, ] = toCanvas(endX, 0);
+  ctx.strokeStyle = activeColor;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(mx, PAD.t); ctx.lineTo(mx, axY); ctx.stroke();
+  ctx.setLineDash([]);
+  
+  ctx.fillStyle = activeColor;
+  ctx.beginPath(); ctx.arc(mx, axY, 4, 0, Math.PI*2); ctx.fill();
+
+  ctx.fillStyle = cAxText; ctx.font = 'italic 12px Cormorant Garamond,serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(isX ? `x = ${endX.toFixed(2)}` : `u = ${endX.toFixed(2)}`, mx, axY + 18);
+  
+  let areaX = fnData.domainX.F(xBound) - fnData.domainX.F(0);
+  let areaU = fnData.domainU.F(uBound) - fnData.domainU.F(S.fnIdx === 2 ? 1 : 0);
+
+  document.getElementById('areaXVal').textContent = areaX.toFixed(4);
+  document.getElementById('areaUVal').textContent = areaU.toFixed(4);
+
+  const liveFormulaDiv = document.getElementById('liveFormula');
+  let startLimitU = (S.fnIdx === 2) ? 1 : 0;
+  let formulaStr = `$$ \\int_{0}^{${xBound.toFixed(2)}} f(x) dx = \\int_{${startLimitU}}^{${uBound.toFixed(2)}} f(u) du = ${areaX.toFixed(4)} $$`;
+  
+  if (liveFormulaDiv.dataset.current !== formulaStr) {
+      liveFormulaDiv.innerHTML = formulaStr;
+      liveFormulaDiv.dataset.current = formulaStr;
+      if(window.MathJax) {
+          MathJax.typesetPromise([liveFormulaDiv]).catch(err => console.log('MathJax error: ' + err.message));
+      }
+  }
+}
+
+/* ═════════════ WIRING ═════════════ */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+document.querySelectorAll('[data-fn]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('[data-fn]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    S.fnIdx = +btn.dataset.fn;
+    drawMain();
+  });
+});
+
+document.querySelectorAll('[data-domain]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('[data-domain]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    S.domain = btn.dataset.domain;
+    drawMain();
+  });
+});
+
+document.getElementById('bSlider').addEventListener('input',e=>{
+  S.bX = +e.target.value;
+  document.getElementById('bVal').textContent = S.bX.toFixed(2);
+  drawMain();
+});
+
+window.onload = () => {
+    drawMain();
+};
+</script>
+</body>
+</html>

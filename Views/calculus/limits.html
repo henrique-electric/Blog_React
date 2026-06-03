@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Limits & Epsilon-Delta — Deep Dive</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
+
+<script>
+  MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']]
+    },
+    svg: {
+      fontCache: 'global'
+    }
+  };
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<style>
+:root {
+  /* Colors */
+  --bg:       #f7f4ee;
+  --bg2:      #efebe2;
+  --bg-card:  #ffffff;
+  --ink:      #1a1810;
+  --ink2:     #3d3a30;
+  --ink3:     #7a7060;
+  --rule:     #d4cec0;
+  --gold:     #b5822a;
+  --gold-lt:  #e8c87a;
+  --teal:     #2a7a6a;
+  --teal-lt:  #7ac8b4;
+  --rose:     #8a2a3a;
+  --rose-lt:  #e87a8a;
+  --blue:     #2a4a7a;
+  --blue-lt:  #7aaae8;
+  
+  /* Canvas specific vars */
+  --canvas-bg:   #ffffff;
+  --grid-line:   #f0ede6;
+  --ax-line:     #b0aa98;
+  --ax-text:     #9a9280;
+  --shade-exact: rgba(42,122,106,0.12);
+  --shade-err:   rgba(138,42,58,0.15);
+  --shade-valid: rgba(42,122,106,0.25);
+  --box-line:    rgba(181,130,42,0.6);
+}
+
+[data-theme="dark"] {
+  --bg:       #161616;
+  --bg2:      #222222;
+  --bg-card:  #1e1e1e;
+  --ink:      #e4e0d8;
+  --ink2:     #b0a898;
+  --ink3:     #888070;
+  --rule:     #3d3a30;
+  --gold:     #d4a350;
+  --gold-lt:  #e8c87a;
+  --teal:     #4db6a1;
+  --teal-lt:  #7ac8b4;
+  --rose:     #cc6677;
+  --rose-lt:  #e87a8a;
+  --blue:     #6b9bed;
+  --blue-lt:  #7aaae8;
+
+  --canvas-bg:   #1a1a1a;
+  --grid-line:   #2a2a2a;
+  --ax-line:     #555555;
+  --ax-text:     #888888;
+  --shade-exact: rgba(77,182,161,0.15);
+  --shade-err:   rgba(204,102,119,0.25);
+  --shade-valid: rgba(77,182,161,0.35);
+  --box-line:    rgba(212,163,80,0.6);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg); color: var(--ink); font-family: 'Lora', Georgia, serif;
+  font-size: 16px; line-height: 1.75; transition: background-color 0.2s, color 0.2s;
+}
+
+/* ── HEADER ── */
+.site-header {
+  border-bottom: 2px solid var(--ink); padding: 2.5rem 2rem 2rem; display: flex;
+  align-items: flex-end; justify-content: space-between; gap: 2rem; flex-wrap: wrap;
+}
+.site-header .title-block h1 {
+  font-family: 'Cormorant Garamond', serif; font-size: clamp(2.4rem, 5vw, 4rem);
+  font-weight: 300; letter-spacing: -0.02em; line-height: 1; color: var(--ink);
+}
+.site-header .title-block h1 em { font-style: italic; color: var(--blue); }
+.site-header .title-block .subtitle {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; text-transform: uppercase;
+  letter-spacing: 0.14em; color: var(--ink3); margin-top: 0.5rem;
+}
+.header-right { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+.header-formula {
+  font-size: 1.2rem; color: var(--ink2); white-space: nowrap;
+  border-left: 3px solid var(--blue); padding-left: 1rem;
+}
+
+/* ── NAV TABS ── */
+.tab-nav {
+  display: flex; border-bottom: 1px solid var(--rule); background: var(--bg);
+  position: sticky; top: 0; z-index: 50; overflow-x: auto; scrollbar-width: none;
+}
+.tab-nav::-webkit-scrollbar { display: none; }
+.tab-btn {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--ink3); background: none; border: none;
+  border-bottom: 2px solid transparent; padding: 0.9rem 1.4rem; cursor: pointer;
+  white-space: nowrap; transition: color 0.15s, border-color 0.15s; flex-shrink: 0;
+}
+.tab-btn:hover { color: var(--ink); }
+.tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+/* ── PANELS ── */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── INTERACTIVE ── */
+.interactive-layout {
+  display: grid; grid-template-columns: 1fr 360px; gap: 0; min-height: 600px;
+}
+@media (max-width: 820px) { .interactive-layout { grid-template-columns: 1fr; } }
+.viz-pane { border-right: 1px solid var(--rule); padding: 1.5rem; position: relative; }
+.canvas-container {
+  position: relative; background: var(--canvas-bg); border: 1px solid var(--rule);
+  border-radius: 2px; overflow: hidden;
+}
+canvas { display: block; width: 100%; height: auto; }
+.viz-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; margin-top: 1rem; }
+.stat-chip { background: var(--bg-card); border: 1px solid var(--rule); padding: 0.7rem 0.8rem; border-radius: 2px; }
+.stat-chip .lbl { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink3); }
+.stat-chip .val { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-style: italic; color: var(--gold); line-height: 1.2; margin-top: 0.1rem; }
+.stat-chip.valid .val { color: var(--teal); }
+.stat-chip.invalid .val { color: var(--rose); font-size: 1.2rem; }
+
+.ctrl-pane { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.4rem; overflow-y: auto; }
+.ctrl-head {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; text-transform: uppercase;
+  letter-spacing: 0.12em; color: var(--ink3); margin-bottom: 0.8rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--rule);
+}
+.btn-group { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.grp-btn {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; padding: 0.4rem 0.7rem;
+  background: var(--bg-card); border: 1px solid var(--rule); color: var(--ink3); border-radius: 2px;
+  cursor: pointer; transition: all 0.12s;
+}
+.grp-btn:hover { border-color: var(--ink2); color: var(--ink2); }
+.grp-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+.grp-btn.fn-btn { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 0.95rem; }
+.grp-btn.fn-btn.active { background: var(--gold); border-color: var(--gold); color: #fff; }
+
+.slider-block { margin-bottom: 0.9rem; }
+.slider-label { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--ink2); margin-bottom: 0.4rem; }
+.slider-label .sval { font-family: 'JetBrains Mono', monospace; color: var(--blue); }
+input[type=range] { -webkit-appearance: none; width: 100%; height: 2px; background: var(--rule); border-radius: 1px; outline: none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%; background: var(--blue); cursor: pointer; border: 2px solid var(--bg); box-shadow: 0 0 0 1px var(--blue); }
+
+.inline-formula {
+  background: var(--bg-card); border: 1px solid var(--rule); border-left: 3px solid var(--blue);
+  padding: 0.8rem 1rem; color: var(--ink2); border-radius: 0 2px 2px 0; overflow-x: auto;
+}
+
+/* ── CONTENT PANELS ── */
+.theory-body, .intuition-body, .steps-body, .gloss-body, .strategy-body { max-width: 850px; margin: 0 auto; padding: 3rem 2rem 4rem; }
+h2 { font-family: 'Cormorant Garamond', serif; font-size: 2rem; font-weight: 400; color: var(--ink); margin: 3rem 0 1rem; border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem; }
+h2:first-child { margin-top: 0; }
+h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; font-style: italic; font-weight: 400; color: var(--blue); margin: 2rem 0 0.6rem; }
+p { color: var(--ink2); margin-bottom: 1.2rem; line-height: 1.8; }
+ul, ol { color: var(--ink2); margin-bottom: 1.2rem; padding-left: 1.5rem; line-height: 1.8; }
+li { margin-bottom: 0.5rem; }
+
+.definition, .insight-box, .warning-box { background: var(--bg-card); border: 1px solid var(--rule); padding: 1.5rem 1.8rem; margin: 2rem 0; border-radius: 0 3px 3px 0; }
+.definition { border-left: 4px solid var(--gold); }
+.insight-box { border-left: 4px solid var(--teal); background: rgba(42,122,106,0.05); }
+.warning-box { border-left: 4px solid var(--rose); background: rgba(138,42,58,0.05); }
+.def-title, .ins-title, .warn-title { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 0.8rem; }
+.def-title { color: var(--gold); }
+.ins-title { color: var(--teal); }
+.warn-title { color: var(--rose); }
+
+.math-display {
+  text-align: center; padding: 1.5rem 1rem; background: var(--bg2); border: 1px solid var(--rule);
+  border-radius: 3px; margin: 2rem 0; color: var(--ink); overflow-x: auto;
+}
+
+.note-box { background: var(--bg2); border: 1px solid var(--rule); padding: 1.2rem 1.5rem; border-radius: 3px; margin: 1.5rem 0; font-size: 0.95rem; color: var(--ink3); }
+
+.analogy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 2rem 0; }
+@media (max-width: 650px) { .analogy-grid { grid-template-columns: 1fr; } }
+.analogy-card { background: var(--bg-card); border: 1px solid var(--rule); padding: 1.5rem; border-radius: 3px; }
+.analogy-card .ac-label { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink3); margin-bottom: 0.6rem; }
+.analogy-card .ac-title { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1.2rem; color: var(--blue); margin-bottom: 0.6rem; }
+
+/* ── STEP-BY-STEP ── */
+.step-card { display: grid; grid-template-columns: 56px 1fr; gap: 1.2rem; margin-bottom: 2.5rem; position: relative; }
+.step-card::before { content: ''; position: absolute; left: 27px; top: 56px; bottom: -2.5rem; width: 1px; background: var(--rule); }
+.step-card:last-child::before { display: none; }
+.step-num { width: 56px; height: 56px; border-radius: 50%; background: var(--blue); color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; font-style: italic; flex-shrink: 0; }
+.step-content .math-inline { background: var(--bg2); border: 1px solid var(--rule); border-left: 3px solid var(--blue); padding: 0.7rem 1rem; border-radius: 0 2px 2px 0; margin: 0.8rem 0; color: var(--ink2); overflow-x: auto; }
+.step-content .highlight { background: rgba(42,74,122,0.08); border: 1px solid rgba(42,74,122,0.25); padding: 0.7rem 1rem; border-radius: 3px; margin: 0.8rem 0; font-size: 0.95rem; color: var(--ink2); }
+
+/* ── STRATEGY MAP ── */
+.flow-card { background: var(--bg-card); border: 1px solid var(--rule); border-radius: 3px; padding: 1.8rem; margin-bottom: 2rem; border-left: 4px solid var(--gold); }
+.flow-title { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-style: italic; color: var(--ink); margin-bottom: 0.8rem; }
+.flow-desc { font-size: 0.95rem; color: var(--ink2); line-height: 1.7; }
+
+/* ── GLOSSARY ── */
+.gloss-item { display: grid; grid-template-columns: 220px 1fr; gap: 1.5rem; padding: 1.5rem 0; border-bottom: 1px solid var(--rule); align-items: start; }
+.gloss-item:last-child { border-bottom: none; }
+.gloss-term { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1.3rem; color: var(--blue); }
+.gloss-def { color: var(--ink2); font-size: 0.95rem; line-height: 1.7; }
+.symbol { display: inline-block; font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1.1rem; color: var(--ink); background: var(--bg2); padding: 0 0.4rem; border-radius: 2px; margin: 0 2px; }
+@media (max-width: 520px) { .gloss-item { grid-template-columns: 1fr; gap: 0.5rem; } }
+
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="title-block">
+    <h1>Limits & <em>$\epsilon-\delta$</em></h1>
+    <div class="subtitle">The rigorous foundation of continuous mathematics</div>
+  </div>
+  <div class="header-right">
+    <div class="header-formula">
+      $$ \forall \epsilon > 0, \exists \delta > 0 \implies |f(x) - L| < \epsilon $$
+    </div>
+    <button id="themeToggle" class="grp-btn">🌓 Theme</button>
+  </div>
+</header>
+
+<nav class="tab-nav">
+  <button class="tab-btn active" data-tab="interactive">① The $\epsilon$-$\delta$ Visualizer</button>
+  <button class="tab-btn" data-tab="intuition">② Deep Intuition</button>
+  <button class="tab-btn" data-tab="theory">③ Core Theory</button>
+  <button class="tab-btn" data-tab="steps">④ Step-by-Step Proofs</button>
+  <button class="tab-btn" data-tab="strategy">⑤ Strategy & Logic</button>
+  <button class="tab-btn" data-tab="glossary">⑥ Glossary</button>
+</nav>
+
+<div class="tab-panel active" id="tab-interactive">
+  <div class="interactive-layout">
+    <div class="viz-pane">
+      <div class="canvas-container">
+        <canvas id="mainCanvas" width="680" height="460"></canvas>
+      </div>
+      <div class="viz-stats">
+        <div class="stat-chip">
+          <div class="lbl">Challenge (Error Bound)</div>
+          <div class="val" id="epsVal">—</div>
+        </div>
+        <div class="stat-chip">
+          <div class="lbl">Response (Input Window)</div>
+          <div class="val" id="delVal">—</div>
+        </div>
+        <div class="stat-chip" id="statusChip">
+          <div class="lbl">Status</div>
+          <div class="val" id="statusVal">Checking...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ctrl-pane">
+
+      <div class="ctrl-section">
+        <div class="ctrl-head">Function $f(x)$</div>
+        <div class="btn-group">
+          <button class="grp-btn fn-btn active" data-fn="0">$2x + 1$</button>
+          <button class="grp-btn fn-btn" data-fn="1">$-\frac{1}{2}x^2 + 4$</button>
+          <button class="grp-btn fn-btn" data-fn="2">$\frac{\sin(4x)}{x}$ (Hole)</button>
+          <button class="grp-btn fn-btn" data-fn="3">Step (Jump)</button>
+        </div>
+      </div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-head">Target Point</div>
+        <div class="slider-block">
+          <div class="slider-label">
+            <span>Center Point $c$</span>
+            <span class="sval" id="cVal">1.00</span>
+          </div>
+          <input type="range" id="cSlider" min="-3" max="3" step="0.1" value="1.0">
+        </div>
+        <div style="margin-top:0.8rem; font-size:0.78rem; color:var(--ink3); font-style:italic;">
+          The limit $L$ is automatically calculated as $x \to c$.
+        </div>
+      </div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-head">The Epsilon-Delta Game</div>
+        <div class="slider-block">
+          <div class="slider-label">
+            <span>$\epsilon$ (Vertical Error Tolerance)</span>
+            <span class="sval" id="epsSliderVal">1.50</span>
+          </div>
+          <input type="range" id="epsSlider" min="0.2" max="3" step="0.1" value="1.5">
+        </div>
+        <div class="slider-block">
+          <div class="slider-label">
+            <span>$\delta$ (Horizontal Control Window)</span>
+            <span class="sval" id="delSliderVal">1.00</span>
+          </div>
+          <input type="range" id="delSlider" min="0.05" max="2" step="0.05" value="1.0">
+        </div>
+        <div style="margin-top:0.8rem; font-size:0.78rem; color:var(--ink3); font-style:italic;">
+          <strong>Goal:</strong> Shrink $\delta$ until the function curve inside the vertical band never escapes the top or bottom of the horizontal $\epsilon$ band.
+        </div>
+      </div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-head">Formal Condition</div>
+        <div class="inline-formula" id="liveFormula">
+          </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-intuition">
+  <div class="intuition-body">
+
+    <h2>The Ghost of Departed Quantities</h2>
+
+    <p>When Isaac Newton and Gottfried Leibniz invented calculus in the 17th century, it was a mathematical superpower. They could suddenly calculate planetary orbits, instantaneous velocities, and maximum profits. But there was a glaring, embarrassing flaw at the heart of their invention: <strong>it rested on a logical paradox.</strong></p>
+
+    <p>To find the slope of a curve, they divided a tiny change in $y$ by a tiny change in $x$. They called these tiny changes "infinitesimals"—numbers that were somehow smaller than any normal number, yet strictly greater than zero. But at the very end of their calculations, they would casually set these infinitesimals exactly equal to zero to simplify the algebra.</p>
+
+    <p>The philosopher George Berkeley fiercely attacked this. You cannot divide by a number assuming it is not zero, and then later declare it to be zero. He mocked infinitesimals as "the ghosts of departed quantities." For nearly 150 years, calculus worked perfectly in physics and engineering, but its mathematical foundation was practically magic.</p>
+
+    <div class="insight-box">
+      <div class="ins-title">The Arrival of the Limit</div>
+      <p>In the 19th century, mathematicians like Augustin-Louis Cauchy and Karl Weierstrass finally fixed the foundation. They banned the concept of "infinitely small numbers." Instead, they introduced a dynamic process: <strong>The Limit</strong>. A limit doesn't care what happens exactly <em>at</em> zero. It only cares about the <em>trend</em> as you approach zero.</p>
+    </div>
+
+    <h2>Why "Plugging It In" is a Trap</h2>
+
+    <p>In high school algebra, if you are asked to find what a function is doing at $x = 2$, you just evaluate $f(2)$. Therefore, many students wrongly believe that $\lim_{x \to 2} f(x)$ is just a fancy way of writing $f(2)$.</p>
+
+    <p>This is a fundamental misunderstanding. The limit is entirely about the <strong>journey</strong>, not the destination. A limit asks: <em>"As my inputs get arbitrarily close to 2, what value are my outputs zeroing in on?"</em></p>
+    
+    <p>Consider the function $f(x) = \frac{x^2 - 4}{x - 2}$. If you plug in $x = 2$, you get $\frac{0}{0}$, which is completely undefined. The universe breaks. The function has a literal hole in it. But if you plug in $x = 1.99$, the output is $3.99$. If you plug in $x = 2.001$, the output is $4.001$. The trend is overwhelmingly obvious: the outputs are approaching 4. The limit exists and equals 4, even though the function itself does not exist there.</p>
+
+    <h2>The Epsilon-Delta Game: The Ultimate Proof</h2>
+
+    <p>We know intuitively that $\lim_{x \to 2} (2x) = 4$. But "getting close to" is not rigorous mathematics. How do we <em>prove</em> it? We play the Epsilon-Delta game.</p>
+
+    <p>Imagine I am a skeptic. I don't believe your limit is exactly 4. I challenge you: "I bet you can't force the output of your function to be within 0.1 of 4." This tolerance is called <strong>Epsilon ($\epsilon$)</strong>.</p>
+
+    <p>To win the challenge, you must give me a control knob for the input. You say, "Okay, as long as you keep your $x$ inputs within 0.05 of 2, my outputs will absolutely stay within 0.1 of 4." This input window is called <strong>Delta ($\delta$)</strong>.</p>
+
+    <p>I shrink the challenge: "What if $\epsilon = 0.0001$?" You respond: "Then restrict $\delta$ to $0.00005$."</p>
+
+    <p>If you can successfully provide a valid $\delta$ for <em>any conceivable</em> $\epsilon$ I throw at you, no matter how microscopically small, you win the game. You have formally proven the limit.</p>
+
+    <div class="analogy-grid">
+      <div class="analogy-card">
+        <div class="ac-label">Manufacturing</div>
+        <div class="ac-title">The Machine Tolerance</div>
+        <p>A client wants a metal rod cut to exactly $10$ cm, but allows a tiny error tolerance of $\epsilon$. You must figure out how precisely you need to calibrate your cutting machine ($\delta$) to guarantee every rod passes the client's quality control.</p>
+      </div>
+      <div class="analogy-card">
+        <div class="ac-label">Archery</div>
+        <div class="ac-title">Hitting the Bullseye</div>
+        <p>The target ring is $\epsilon$ wide. How steady must your hand be ($\delta$) to guarantee your arrow lands inside the ring? If the wind is perfectly predictable, a tighter hand grip always guarantees a tighter grouping.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-theory">
+  <div class="theory-body">
+
+    <h2>1. The Informal Definition</h2>
+
+    <p>We say that the limit of $f(x)$ as $x$ approaches $c$ is $L$, written as:</p>
+    <div class="math-display">
+      $$ \lim_{x \to c} f(x) = L $$
+    </div>
+    <p>If we can make the values of $f(x)$ arbitrarily close to $L$ (as close as we like) by taking $x$ to be sufficiently close to $c$ (on either side of $c$) but not equal to $c$.</p>
+
+    <h2>2. The Formal $\epsilon-\delta$ Definition</h2>
+
+    <p>To eliminate words like "arbitrarily close" and "sufficiently close", Karl Weierstrass introduced the strict logical formulation. Let $f$ be a function defined on an open interval containing $c$ (except possibly at $c$ itself), and let $L$ be a real number.</p>
+
+    <p>The limit $\lim_{x \to c} f(x) = L$ if and only if:</p>
+
+    <div class="math-display">
+      $$ \forall \epsilon > 0, \; \exists \delta > 0 \quad \text{such that} \quad 0 < |x - c| < \delta \implies |f(x) - L| < \epsilon $$
+    </div>
+
+    <p>Let's dissect this mathematical sentence piece by piece:</p>
+    <ul>
+      <li><strong>$\forall \epsilon > 0$</strong>: "For every epsilon greater than zero." This is the challenge. Someone hands you a required error tolerance.</li>
+      <li><strong>$\exists \delta > 0$</strong>: "There exists a delta greater than zero." This is your response. You must find an input window.</li>
+      <li><strong>$0 < |x - c| < \delta$</strong>: "If the distance between $x$ and $c$ is less than $\delta$ (and $x \neq c$)." This is the assumption. We never care what happens exactly <em>at</em> $c$, which is why the distance is strictly greater than 0.</li>
+      <li><strong>$\implies |f(x) - L| < \epsilon$</strong>: "Then the distance between the output $f(x)$ and the target $L$ is guaranteed to be less than epsilon." This is the winning condition.</li>
+    </ul>
+
+    <div class="warning-box">
+      <div class="warn-title">The Order of Quantifiers Matters</div>
+      <p>Notice that $\forall \epsilon$ comes <em>before</em> $\exists \delta$. This means $\delta$ is allowed to depend on $\epsilon$ (we often write $\delta(\epsilon)$). You do not need to find one magical $\delta$ that works for every $\epsilon$. You just need a rule that generates a new $\delta$ whenever a new $\epsilon$ is provided.</p>
+    </div>
+
+    <h2>3. Left and Right Limits</h2>
+
+    <p>Sometimes a function behaves completely differently depending on which direction you approach from. We use directional limits to handle this.</p>
+    
+    <ul>
+      <li><strong>Right-hand limit ($x \to c^+$):</strong> We only consider $x$ values strictly greater than $c$. The formal condition becomes $0 < x - c < \delta \implies |f(x) - L| < \epsilon$.</li>
+      <li><strong>Left-hand limit ($x \to c^-$):</strong> We only consider $x$ values strictly less than $c$. The formal condition becomes $0 < c - x < \delta \implies |f(x) - L| < \epsilon$.</li>
+    </ul>
+
+    <p><strong>The Ultimate Theorem:</strong> A general limit $\lim_{x \to c} f(x) = L$ exists <em>if and only if</em> both the left-hand limit and the right-hand limit exist, and they equal the exact same number $L$. If a function jumps vertically, the left and right limits disagree, and the general limit Does Not Exist (DNE).</p>
+
+    <h2>4. The Squeeze Theorem</h2>
+
+    <p>If you cannot evaluate a limit directly, you can trap it between two functions that are easier to evaluate. If $g(x) \le f(x) \le h(x)$ for all $x$ near $c$, and if:</p>
+
+    <div class="math-display">
+      $$ \lim_{x \to c} g(x) = \lim_{x \to c} h(x) = L $$
+    </div>
+
+    <p>Then the function $f(x)$ is forced (squeezed) to have the exact same limit: $\lim_{x \to c} f(x) = L$. This is historically how we prove that $\lim_{x \to 0} \frac{\sin x}{x} = 1$, by trapping it between $\cos x$ and $1$.</p>
+
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-steps">
+  <div class="steps-body">
+
+    <h2 style="margin-top: 0;">Proof 1: A Linear Function</h2>
+    <div style="margin-bottom:2rem;">
+      <p style="color:var(--ink3); font-size:0.85rem; font-style:italic;">Formally prove that $\lim_{x \to 2} (3x - 1) = 5$ using the Epsilon-Delta definition.</p>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h3>State what must be shown</h3>
+        <p>We must show that for any given $\epsilon > 0$, we can find a $\delta > 0$ such that:</p>
+        <div class="math-inline">$$ 0 < |x - 2| < \delta \implies |(3x - 1) - 5| < \epsilon $$</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h3>Phase 1: The "Scratchwork"</h3>
+        <p>We start with the conclusion we want to reach and work backwards to find a relationship between $\delta$ and $\epsilon$. Start by simplifying the right side.</p>
+        <div class="math-inline">$$ |3x - 1 - 5| < \epsilon $$</div>
+        <div class="math-inline">$$ |3x - 6| < \epsilon $$</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h3>Factor out the constant</h3>
+        <p>Factor out the 3 from the absolute value. This reveals the $|x - c|$ term we are looking for.</p>
+        <div class="math-inline">$$ 3|x - 2| < \epsilon $$</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h3>Solve for the delta term</h3>
+        <p>Divide both sides by 3. This tells us exactly how we need to choose our $\delta$ based on the given $\epsilon$.</p>
+        <div class="math-inline">$$ |x - 2| < \frac{\epsilon}{3} $$</div>
+        <div class="highlight"><strong>Discovery:</strong> We should choose $\delta = \frac{\epsilon}{3}$. If someone demands an error tolerance of $0.03$, we restrict the inputs to $0.01$.</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <h3>Phase 2: The Formal Proof</h3>
+        <p>Now we write the actual proof forwards. Let $\epsilon > 0$ be given. We choose $\delta = \frac{\epsilon}{3}$. Assume $0 < |x - 2| < \delta$.</p>
+        <p>Then, by our assumption:</p>
+        <div class="math-inline">$$ |x - 2| < \frac{\epsilon}{3} $$</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">6</div>
+      <div class="step-content">
+        <h3>Reconstruct the function</h3>
+        <p>Multiply both sides by 3 to rebuild the original expression.</p>
+        <div class="math-inline">$$ 3|x - 2| < \epsilon $$</div>
+        <div class="math-inline">$$ |3x - 6| < \epsilon $$</div>
+        <div class="math-inline">$$ |(3x - 1) - 5| < \epsilon $$</div>
+        <div class="highlight">
+          <strong>Q.E.D.</strong> We have shown that choosing $\delta = \frac{\epsilon}{3}$ guarantees the function stays within $\epsilon$ of the limit 5.
+        </div>
+      </div>
+    </div>
+
+    <h2 style="margin-top: 3rem;">Proof 2: A Non-Linear Function (Quadratic)</h2>
+    <div style="margin-bottom:2rem;">
+      <p style="color:var(--ink3); font-size:0.85rem; font-style:italic;">Formally prove that $\lim_{x \to 3} x^2 = 9$.</p>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h3>The Scratchwork</h3>
+        <p>We want $|x^2 - 9| < \epsilon$. We factor this to expose the $|x - 3|$ term.</p>
+        <div class="math-inline">$$ |x - 3| \cdot |x + 3| < \epsilon $$</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h3>The Bounding Problem</h3>
+        <p>Unlike the linear example, we have a rogue variable term: $|x + 3|$. We cannot set $\delta = \frac{\epsilon}{|x+3|}$ because $\delta$ must be a constant that only depends on $\epsilon$, not on $x$. We must force a numerical bound on $|x + 3|$.</p>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h3>Assume a provisional Delta</h3>
+        <p>Let's pre-emptively agree that we will never let $\delta$ be larger than 1. So, assume $|x - 3| < 1$. This implies:</p>
+        <div class="math-inline">$$ 2 < x < 4 $$</div>
+      </div>
+    </div>
+    
+    <div class="step-card">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h3>Bound the rogue term</h3>
+        <p>If $x$ is trapped between 2 and 4, then $(x + 3)$ is trapped between 5 and 7. Therefore, the absolute maximum value $|x + 3|$ can take is 7.</p>
+        <div class="math-inline">$$ |x + 3| < 7 $$</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <h3>Finalize the Delta choice</h3>
+        <p>Returning to our scratchwork, we substitute the worst-case bound: $7 |x - 3| < \epsilon$, which implies $|x - 3| < \frac{\epsilon}{7}$. However, this only works if our earlier assumption ($|x-3| < 1$) is also true.</p>
+        <div class="highlight"><strong>Discovery:</strong> We must choose $\delta = \min(1, \frac{\epsilon}{7})$. We take whichever constraint is stricter.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-strategy">
+  <div class="strategy-body">
+
+    <h2 style="font-family:'Cormorant Garamond',serif; font-size:1.8rem; font-weight:400; margin-bottom:1.5rem;">The Architecture of a Limit Proof</h2>
+    <p style="color:var(--ink3); font-size:1rem; margin-bottom:2.5rem;">Writing an $\epsilon-\delta$ proof feels backwards because it requires two completely separate phases: a private discovery phase, and a public presentation phase.</p>
+
+    <div class="flow-card">
+      <div class="flow-title">Phase 1: The Private Scratchwork</div>
+      <div class="flow-desc">
+        This is the messy algebraic phase you do on scrap paper. You never hand this in to a professor.
+        <ul>
+          <li>Start with the end goal: $|f(x) - L| < \epsilon$.</li>
+          <li>Use algebraic manipulation (factoring, rationalizing, multiplying by conjugates) to isolate the term $|x - c|$.</li>
+          <li>For linear functions, you will end up with $K|x - c| < \epsilon$, leading directly to $\delta = \epsilon/K$.</li>
+          <li>For non-linear functions, you will have a rogue function of $x$ leftover. You must artificially bound this rogue function by assuming a maximum radius (usually $\delta \le 1$) to find its maximum possible value $M$.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <div class="flow-title">Phase 2: The Public Proof</div>
+      <div class="flow-desc">
+        This is the formal essay you write down. It proceeds purely forward using logical deduction.
+        <ul>
+          <li><strong>Start strictly with:</strong> "Let $\epsilon > 0$ be given." You are acknowledging the challenge.</li>
+          <li><strong>Declare your weapon:</strong> "Choose $\delta = [insert your scratchwork finding here]." If you used a bounding assumption, write "Choose $\delta = \min(1, \dots)$".</li>
+          <li><strong>State the premise:</strong> "Assume $0 < |x - c| < \delta$."</li>
+          <li><strong>Execute the logic:</strong> Reconstruct the algebra from your scratchwork in reverse order, step-by-step, arriving exactly at $|f(x) - L| < \epsilon$.</li>
+          <li><strong>Conclude:</strong> "Therefore, by the definition of a limit, $\lim_{x \to c} f(x) = L$."</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <div class="flow-title">When Limits Fail (Proving DNE)</div>
+      <div class="flow-desc">
+        To prove a limit Does Not Exist, you must break the $\epsilon-\delta$ definition. You do this by reversing the quantifiers.
+        <br><br>
+        Instead of $\forall \epsilon \exists \delta$, you must prove $\exists \epsilon \forall \delta$.
+        <br><br>
+        You only need to find <strong>one specific $\epsilon$</strong> (usually $\epsilon = 1/2$ or the size of a jump discontinuity) where, no matter how small someone makes $\delta$, the function always manages to escape the $\epsilon$-bounds. If you can trap them, the limit cannot exist.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-glossary">
+  <div class="gloss-body">
+    <h2 style="font-family:'Cormorant Garamond',serif; font-size:1.8rem; font-weight:400; margin-bottom:1.5rem; border-bottom:2px solid var(--ink); padding-bottom:0.5rem;">Glossary of Terms</h2>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Limit</div>
+      <div class="gloss-def">The foundational concept of calculus. The value that a function "approaches" as its input approaches a specific target value, regardless of what happens exactly at that target value.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Epsilon ($\epsilon$)</div>
+      <div class="gloss-def">A Greek letter used universally in mathematics to represent a small, strictly positive error tolerance on the <em>output</em> (y-axis). It defines the vertical target window $[L - \epsilon, L + \epsilon]$.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Delta ($\delta$)</div>
+      <div class="gloss-def">A Greek letter used to represent a small, strictly positive control window on the <em>input</em> (x-axis). It defines the horizontal bounds $[c - \delta, c + \delta]$ needed to guarantee the epsilon tolerance.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Continuous Function</div>
+      <div class="gloss-def">A function where the limit at every point exists, and the limit perfectly equals the actual value of the function. Formally: $\lim_{x \to c} f(x) = f(c)$. There are no holes, jumps, or vertical asymptotes.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Jump Discontinuity</div>
+      <div class="gloss-def">A point where the left-hand limit and the right-hand limit both exist, but are completely different numbers. The function jumps from one height to another. The general limit Does Not Exist (DNE) here.</div>
+    </div>
+
+    <div class="gloss-item">
+      <div class="gloss-term">Squeeze Theorem (Sandwich Theorem)</div>
+      <div class="gloss-def">A theorem stating that if a function $f(x)$ is permanently trapped between two other functions $g(x)$ and $h(x)$, and both of those bounding functions approach the same limit $L$, then $f(x)$ must also approach $L$.</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ═════════════ DATA ═════════════ */
+const FNS = [
+  { 
+    label: '2x + 1', 
+    f: x => 2*x + 1,
+    lim: c => 2*c + 1,
+    minY: -5, maxY: 7,
+    isDiscrete: false
+  },
+  { 
+    label: '-0.5x^2 + 4', 
+    f: x => -0.5*x*x + 4,
+    lim: c => -0.5*c*c + 4,
+    minY: -1, maxY: 5,
+    isDiscrete: false
+  },
+  { 
+    label: 'sin(4x)/x', 
+    f: x => { if(Math.abs(x) < 0.0001) return 4; return Math.sin(4*x)/x; },
+    lim: c => { if(Math.abs(c) < 0.0001) return 4; return Math.sin(4*c)/c; },
+    minY: -2, maxY: 5,
+    isDiscrete: false,
+    holeAt: 0
+  },
+  {
+    label: 'Step (Jump)',
+    f: x => x < 1 ? 1 : 3,
+    lim: c => c < 1 ? 1 : 3, // Technical DNE at 1, handled via logic
+    minY: -1, maxY: 5,
+    isDiscrete: true,
+    jumpAt: 1
+  }
+];
+
+let S = { fnIdx:0, c: 1.0, eps: 1.5, del: 1.0 };
+
+/* ═════════════ THEME TOGGLE ═════════════ */
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const root = document.documentElement;
+  if (root.getAttribute('data-theme') === 'dark') {
+    root.removeAttribute('data-theme');
+  } else {
+    root.setAttribute('data-theme', 'dark');
+  }
+  drawMain();
+});
+
+/* ═════════════ MAIN CANVAS ═════════════ */
+function setupHighDPICanvas(canvasId, cssWidth, cssHeight) {
+  const cv = document.getElementById(canvasId);
+  const ctx = cv.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = cssWidth * dpr;
+  cv.height = cssHeight * dpr;
+  cv.style.width = cssWidth + 'px';
+  cv.style.height = cssHeight + 'px';
+  ctx.scale(dpr, dpr);
+  return { cv, ctx, W: cssWidth, H: cssHeight };
+}
+
+const { cv, ctx, W, H } = setupHighDPICanvas('mainCanvas', 680, 460);
+const PAD = {t:30, r:30, b:40, l:50};
+
+function drawMain(){
+  const fnData = FNS[S.fnIdx];
+  const {c, eps, del} = S;
+  
+  const rs = getComputedStyle(document.documentElement);
+  const cCanvasBg = rs.getPropertyValue('--canvas-bg').trim() || '#ffffff';
+  const cGridLine = rs.getPropertyValue('--grid-line').trim() || '#f0ede6';
+  const cAxLine = rs.getPropertyValue('--ax-line').trim() || '#b0aa98';
+  const cAxText = rs.getPropertyValue('--ax-text').trim() || '#9a9280';
+  const cBlue = rs.getPropertyValue('--blue').trim() || '#2a4a7a';
+  const cGold = rs.getPropertyValue('--gold').trim() || '#b5822a';
+  const cTeal = rs.getPropertyValue('--teal').trim() || '#2a7a6a';
+  const cRose = rs.getPropertyValue('--rose').trim() || '#8a2a3a';
+  
+  const cShadeValid = rs.getPropertyValue('--shade-valid').trim() || 'rgba(42,122,106,0.25)';
+  const cShadeErr = rs.getPropertyValue('--shade-err').trim() || 'rgba(138,42,58,0.25)';
+  const cBoxLine = rs.getPropertyValue('--box-line').trim() || 'rgba(181,130,42,0.6)';
+
+  let L = fnData.lim(c);
+  let isDNE = (fnData.jumpAt !== undefined && Math.abs(c - fnData.jumpAt) < 0.01);
+  if(isDNE) L = 2; // Arbitrary center to show failure
+
+  const xmin = -3, xmax = 3;
+  const ymin = fnData.minY, ymax = fnData.maxY;
+
+  const toCanvas = (wx,wy) => {
+    const innerW = W - PAD.l - PAD.r, innerH = H - PAD.t - PAD.b;
+    return [PAD.l+(wx-xmin)/(xmax-xmin)*innerW, PAD.t+(1-(wy-ymin)/(ymax-ymin))*innerH];
+  };
+
+  // 1. Validation Check: Does the curve escape the Epsilon band within the Delta window?
+  let isValid = true;
+  if (isDNE) {
+      isValid = false;
+  } else {
+      const steps = 200;
+      for(let i=0; i<=steps; i++){
+        const testX = (c - del) + (2*del)*(i/steps);
+        if(Math.abs(testX - c) < 0.001) continue; // Exclude exactly c
+        const testY = fnData.f(testX);
+        if(testY < L - eps || testY > L + eps){
+            isValid = false;
+            break;
+        }
+      }
+  }
+
+  // Clear Canvas
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=cCanvasBg;
+  ctx.fillRect(0,0,W,H);
+
+  // Draw Grid & Axes
+  ctx.strokeStyle=cGridLine;
+  ctx.lineWidth=1;
+  for(let gi=Math.ceil(ymin); gi<=Math.floor(ymax); gi++){
+    const [,cy]=toCanvas(0,gi);
+    ctx.beginPath();ctx.moveTo(PAD.l,cy);ctx.lineTo(W-PAD.r,cy);ctx.stroke();
+  }
+  for(let gi=Math.ceil(xmin); gi<=Math.floor(xmax); gi++){
+    const [cx,]=toCanvas(gi,0);
+    ctx.beginPath();ctx.moveTo(cx,PAD.t);ctx.lineTo(cx,H-PAD.b);ctx.stroke();
+  }
+
+  const [,axY]=toCanvas(0,0);
+  const [ayX]=toCanvas(0,0);
+  ctx.strokeStyle=cAxLine; ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(PAD.l,axY);ctx.lineTo(W-PAD.r,axY);ctx.stroke(); 
+  if(ayX>=PAD.l&&ayX<=W-PAD.r){
+    ctx.beginPath();ctx.moveTo(ayX,PAD.t);ctx.lineTo(ayX,H-PAD.b);ctx.stroke(); 
+  }
+
+  // Draw Epsilon Band (Horizontal)
+  const [eX1, eYTop] = toCanvas(xmin, L + eps);
+  const [eX2, eYBot] = toCanvas(xmax, L - eps);
+  ctx.fillStyle = isValid ? cShadeValid : cShadeErr;
+  ctx.fillRect(PAD.l, eYTop, W-PAD.l-PAD.r, eYBot - eYTop);
+  
+  ctx.strokeStyle = cBoxLine; ctx.lineWidth = 1; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(PAD.l, eYTop); ctx.lineTo(W-PAD.r, eYTop); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PAD.l, eYBot); ctx.lineTo(W-PAD.r, eYBot); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Draw Delta Window Lines (Vertical)
+  const [dXLeft, ] = toCanvas(c - del, 0);
+  const [dXRight, ] = toCanvas(c + del, 0);
+  ctx.strokeStyle = cBlue; ctx.lineWidth = 1.5; ctx.setLineDash([2,4]);
+  ctx.beginPath(); ctx.moveTo(dXLeft, PAD.t); ctx.lineTo(dXLeft, H-PAD.b); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(dXRight, PAD.t); ctx.lineTo(dXRight, H-PAD.b); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Draw The Bounding Box
+  ctx.strokeStyle = isValid ? cTeal : cRose; ctx.lineWidth = 2;
+  ctx.strokeRect(dXLeft, eYTop, dXRight - dXLeft, eYBot - eYTop);
+
+  // Draw Function Curve
+  ctx.strokeStyle=cInk; ctx.lineWidth=3; ctx.lineJoin='round';
+  if (fnData.isDiscrete) {
+      const [jX, ] = toCanvas(fnData.jumpAt, 0);
+      const [, jY1] = toCanvas(0, 1);
+      const [, jY3] = toCanvas(0, 3);
+      
+      ctx.beginPath(); ctx.moveTo(PAD.l, jY1); ctx.lineTo(jX, jY1); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(jX, jY3); ctx.lineTo(W-PAD.r, jY3); ctx.stroke();
+      
+      // Hole and dot
+      ctx.fillStyle = cCanvasBg;
+      ctx.beginPath(); ctx.arc(jX, jY1, 4, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = cInk;
+      ctx.beginPath(); ctx.arc(jX, jY3, 4, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+  } else {
+      ctx.beginPath(); let started=false;
+      for(let i=0;i<=500;i++){
+        const wx = xmin + (xmax-xmin)*i/500; 
+        if (fnData.holeAt !== undefined && Math.abs(wx - fnData.holeAt) < 0.05) {
+            started = false;
+            continue;
+        }
+        const wy = fnData.f(wx);
+        if(!isFinite(wy)){started=false;continue;}
+        const [cx,cy]=toCanvas(wx,wy);
+        if(!started){ctx.moveTo(cx,cy);started=true;}else ctx.lineTo(cx,cy);
+      }
+      ctx.stroke();
+
+      if (fnData.holeAt !== undefined) {
+          const [hx, hy] = toCanvas(fnData.holeAt, fnData.lim(fnData.holeAt));
+          ctx.fillStyle = cCanvasBg;
+          ctx.beginPath(); ctx.arc(hx, hy, 5, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+      }
+  }
+
+  // Center Marker
+  const [cxCanvas, cyCanvas] = toCanvas(c, L);
+  ctx.fillStyle = cGold;
+  ctx.beginPath(); ctx.arc(cxCanvas, cyCanvas, 4, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = cCanvasBg; ctx.lineWidth = 1; ctx.stroke();
+
+  // Axis Labels
+  ctx.fillStyle = cAxText; ctx.font = '12px JetBrains Mono,monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(`c=${c.toFixed(1)}`, cxCanvas, H - PAD.b + 16);
+  ctx.textAlign = 'right';
+  ctx.fillText(`L=${L.toFixed(1)}`, PAD.l - 6, cyCanvas + 4);
+
+  // Update Status UI
+  document.getElementById('epsVal').textContent = eps.toFixed(2);
+  document.getElementById('delVal').textContent = del.toFixed(2);
+  
+  const statusChip = document.getElementById('statusChip');
+  const statusVal = document.getElementById('statusVal');
+  if (isDNE) {
+      statusChip.className = 'stat-chip invalid';
+      statusVal.textContent = 'DNE';
+  } else if (isValid) {
+      statusChip.className = 'stat-chip valid';
+      statusVal.textContent = 'Valid δ';
+  } else {
+      statusChip.className = 'stat-chip invalid';
+      statusVal.textContent = 'Invalid δ';
+  }
+
+  // Live Formula Update
+  const liveFormulaDiv = document.getElementById('liveFormula');
+  let formulaStr = `$$ 0 < |x - (${c.toFixed(1)})| < ${del.toFixed(2)} \\implies |f(x) - (${L.toFixed(1)})| < ${eps.toFixed(2)} $$`;
+  
+  if (liveFormulaDiv.dataset.current !== formulaStr) {
+      liveFormulaDiv.innerHTML = formulaStr;
+      liveFormulaDiv.dataset.current = formulaStr;
+      if(window.MathJax) {
+          MathJax.typesetPromise([liveFormulaDiv]).catch(err => console.log('MathJax error: ' + err.message));
+      }
+  }
+}
+
+/* ═════════════ WIRING ═════════════ */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+document.querySelectorAll('[data-fn]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('[data-fn]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    S.fnIdx = +btn.dataset.fn;
+    drawMain();
+  });
+});
+
+document.getElementById('cSlider').addEventListener('input',e=>{
+  S.c = +e.target.value;
+  document.getElementById('cVal').textContent = S.c.toFixed(2);
+  drawMain();
+});
+
+document.getElementById('epsSlider').addEventListener('input',e=>{
+  S.eps = +e.target.value;
+  document.getElementById('epsSliderVal').textContent = S.eps.toFixed(2);
+  drawMain();
+});
+
+document.getElementById('delSlider').addEventListener('input',e=>{
+  S.del = +e.target.value;
+  document.getElementById('delSliderVal').textContent = S.del.toFixed(2);
+  drawMain();
+});
+
+window.onload = () => {
+    drawMain();
+};
+</script>
+</body>
+</html>

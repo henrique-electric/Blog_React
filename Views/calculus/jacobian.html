@@ -1,0 +1,1591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Jacobian — A Visual Journey</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Mono:wght@300;400;500&family=Crimson+Pro:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0c0c0e;
+    --surface: #111115;
+    --card: #16161c;
+    --border: #2a2a35;
+    --accent: #e8c96d;
+    --accent2: #7eb8f7;
+    --accent3: #f07a7a;
+    --text: #d8d4cc;
+    --muted: #6e6b62;
+    --bright: #f0ece4;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-size: 18px;
+    line-height: 1.75;
+    overflow-x: hidden;
+  }
+
+  /* ── NOISE TEXTURE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 4rem 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(232,201,109,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232,201,109,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: gridDrift 30s linear infinite;
+  }
+
+  @keyframes gridDrift {
+    from { transform: translate(0,0); }
+    to { transform: translate(60px, 60px); }
+  }
+
+  .hero-glow {
+    position: absolute;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(232,201,109,0.06) 0%, transparent 70%);
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    animation: pulse 4s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+    50% { transform: translate(-50%,-50%) scale(1.15); opacity: 0.6; }
+  }
+
+  .hero-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.25em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    position: relative;
+    animation: fadeSlideUp 0.8s ease both;
+  }
+
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(3.5rem, 8vw, 7rem);
+    font-weight: 900;
+    color: var(--bright);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    position: relative;
+    animation: fadeSlideUp 0.9s 0.1s ease both;
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .hero-sub {
+    font-size: 1.2rem;
+    font-style: italic;
+    color: var(--muted);
+    max-width: 500px;
+    margin-top: 1.2rem;
+    position: relative;
+    animation: fadeSlideUp 0.9s 0.2s ease both;
+  }
+
+  .scroll-cue {
+    position: absolute;
+    bottom: 2.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    animation: fadeSlideUp 1s 0.5s ease both;
+  }
+
+  .scroll-line {
+    width: 1px; height: 40px;
+    background: linear-gradient(to bottom, var(--muted), transparent);
+    animation: scrollLine 2s ease-in-out infinite;
+  }
+
+  @keyframes scrollLine {
+    0%, 100% { transform: scaleY(1); opacity: 1; }
+    50% { transform: scaleY(0.3); opacity: 0.3; }
+  }
+
+  /* ── LAYOUT ── */
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+
+  /* ── NAV DOTS ── */
+  .nav-dots {
+    position: fixed;
+    right: 2rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    z-index: 100;
+  }
+
+  .nav-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--border);
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 1px solid var(--muted);
+  }
+
+  .nav-dot.active, .nav-dot:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    transform: scale(1.5);
+  }
+
+  /* ── SECTION ── */
+  section {
+    padding: 6rem 0;
+    position: relative;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+
+  section.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .section-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+  }
+
+  h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 700;
+    color: var(--bright);
+    line-height: 1.15;
+    margin-bottom: 1.5rem;
+  }
+
+  h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    color: var(--bright);
+    margin: 2rem 0 0.75rem;
+    font-weight: 400;
+    font-style: italic;
+  }
+
+  p { margin-bottom: 1.2rem; }
+
+  .divider {
+    width: 60px; height: 2px;
+    background: linear-gradient(to right, var(--accent), transparent);
+    margin: 1.5rem 0 2.5rem;
+  }
+
+  /* ── FORMULA BLOCK ── */
+  .formula {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    padding: 1.5rem 2rem;
+    margin: 2rem 0;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.92rem;
+    color: var(--bright);
+    border-radius: 4px;
+    overflow-x: auto;
+    line-height: 2;
+  }
+
+  .formula .comment {
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+
+  /* ── CALLOUT ── */
+  .callout {
+    background: linear-gradient(135deg, rgba(232,201,109,0.07), rgba(232,201,109,0.02));
+    border: 1px solid rgba(232,201,109,0.2);
+    border-radius: 6px;
+    padding: 1.5rem 2rem;
+    margin: 2rem 0;
+    font-style: italic;
+    color: var(--accent);
+    font-size: 1.05rem;
+  }
+
+  /* ── INTERACTIVE CANVAS VIEWPORT ── */
+  .viewport {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin: 2.5rem 0;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+
+  .viewport-header {
+    padding: 0.85rem 1.5rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .vp-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .vp-dot:nth-child(1) { background: #f07a7a; }
+  .vp-dot:nth-child(2) { background: #e8c96d; }
+  .vp-dot:nth-child(3) { background: #7eb8f7; }
+
+  .viewport-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    margin-left: auto;
+  }
+
+  .viewport-body {
+    padding: 1.5rem;
+  }
+
+  canvas {
+    display: block;
+    border-radius: 4px;
+  }
+
+  /* ── CONTROLS ── */
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1.2rem;
+    align-items: center;
+  }
+
+  .ctrl-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .ctrl-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 140px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--bg);
+  }
+
+  .val-display {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--accent2);
+    min-width: 3rem;
+  }
+
+  .btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    padding: 0.5rem 1.2rem;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .btn:hover { background: var(--accent); color: var(--bg); }
+
+  /* ── MATRIX DISPLAY ── */
+  .matrix-display {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 1rem 1.5rem;
+    border-radius: 4px;
+    display: inline-block;
+    line-height: 1.8;
+    color: var(--bright);
+    position: relative;
+  }
+
+  .matrix-display::before, .matrix-display::after {
+    content: '';
+    position: absolute;
+    top: 8px; bottom: 8px;
+    width: 6px;
+    border: 1px solid var(--muted);
+  }
+
+  .matrix-display::before { left: 4px; border-right: none; }
+  .matrix-display::after { right: 4px; border-left: none; }
+
+  .det-display {
+    margin-top: 1rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.9rem;
+    color: var(--accent);
+    padding: 0.6rem 1rem;
+    background: rgba(232,201,109,0.07);
+    border-radius: 4px;
+    display: inline-block;
+  }
+
+  /* ── TWO-COL ── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin: 2rem 0;
+  }
+
+  @media (max-width: 640px) {
+    .two-col { grid-template-columns: 1fr; }
+    .nav-dots { display: none; }
+  }
+
+  /* ── INFO CARD ── */
+  .info-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.5rem;
+  }
+
+  .info-card .card-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    color: var(--accent2);
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+  }
+
+  /* ── HIGHLIGHT ── */
+  .hl { color: var(--accent); font-style: normal; }
+  .hl2 { color: var(--accent2); }
+  .hl3 { color: var(--accent3); }
+
+  /* ── SEPARATOR ── */
+  .sep {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--border), transparent);
+    margin: 4rem 0;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 3rem 2rem;
+    text-align: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── TOOLTIP ── */
+  .tooltip {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 0.5rem;
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV DOTS -->
+<nav class="nav-dots" id="navDots">
+  <div class="nav-dot active" data-section="0" title="Intro"></div>
+  <div class="nav-dot" data-section="1" title="What is it?"></div>
+  <div class="nav-dot" data-section="2" title="Linear Maps"></div>
+  <div class="nav-dot" data-section="3" title="The Matrix"></div>
+  <div class="nav-dot" data-section="4" title="Determinant"></div>
+  <div class="nav-dot" data-section="5" title="Chain Rule"></div>
+  <div class="nav-dot" data-section="6" title="Change of Variables"></div>
+</nav>
+
+<!-- ══════════════════════════════════════════ HERO -->
+<section class="hero" id="s0">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+  <div style="position:relative;">
+    <div class="hero-eyebrow">Multivariable Calculus · Visual Essay</div>
+    <h1>The<br><em>Jacobian</em></h1>
+    <p class="hero-sub">How functions stretch, shear, and bend space — and how we measure it.</p>
+  </div>
+  <div class="scroll-cue">
+    <div class="scroll-line"></div>
+    <span>SCROLL</span>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════ SECTION 1: WHAT IS IT -->
+<section id="s1">
+  <div class="container">
+    <div class="section-tag">§ 01 — The Core Idea</div>
+    <h2>What <em>is</em> the Jacobian, really?</h2>
+    <div class="divider"></div>
+
+    <p>Imagine you have a function <span class="hl">F</span> that takes a point in 2D space and maps it to another point in 2D space. For example, polar-to-Cartesian, or a complex transformation that warps a grid. The Jacobian tells you <em>how that function stretches and rotates space locally</em> — at any given point.</p>
+
+    <p>Think of it this way: if you zoom in close enough on any differentiable function, it looks like a <span class="hl">linear map</span> (a matrix transformation). The Jacobian <em>is</em> that best linear approximation. It's the multivariable generalisation of the ordinary derivative.</p>
+
+    <div class="callout">
+      "The Jacobian is to a vector-valued function what the derivative is to a scalar function: the best linear approximation at a point."
+    </div>
+
+    <p>For a single variable: <span class="hl">f(x + h) ≈ f(x) + f′(x)·h</span>. For multiple variables, the scalar multiplier <em>f′(x)</em> becomes a <em>matrix</em> — the Jacobian matrix — and that matrix captures all the directional stretching happening at that point.</p>
+
+    <!-- VIEWPORT 1: grid deformation -->
+    <div class="viewport">
+      <div class="viewport-header">
+        <div class="vp-dot"></div><div class="vp-dot"></div><div class="vp-dot"></div>
+        <span class="viewport-title">INTERACTIVE · Grid Deformation Visualiser</span>
+      </div>
+      <div class="viewport-body">
+        <p style="font-size:0.9rem; color:var(--muted); margin-bottom:1rem;">Drag the sliders to deform the grid. Watch how the input grid (left) maps to the output grid (right) under the linear transformation defined by the 2×2 Jacobian matrix.</p>
+        <div class="two-col">
+          <div>
+            <canvas id="cvInput" width="300" height="300" style="width:100%;max-width:300px;"></canvas>
+            <div class="tooltip">Input space (u, v)</div>
+          </div>
+          <div>
+            <canvas id="cvOutput" width="300" height="300" style="width:100%;max-width:300px;"></canvas>
+            <div class="tooltip">Output space (x, y)</div>
+          </div>
+        </div>
+
+        <div style="margin-top:1.2rem; display:flex; gap:1.5rem; flex-wrap:wrap; align-items:flex-start;">
+          <div class="matrix-display" id="matrixDisplay">
+            ∂x/∂u = <span id="a11v" class="hl">1.00</span>   ∂x/∂v = <span id="a12v" class="hl2">0.00</span><br>
+            ∂y/∂u = <span id="a21v" class="hl3">0.00</span>   ∂y/∂v = <span id="a22v" class="hl">1.00</span>
+          </div>
+          <div>
+            <div class="det-display" id="detDisplay">det(J) = 1.00 → area preserved</div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <div class="ctrl-group">
+            <span class="ctrl-label">∂x/∂u</span>
+            <div style="display:flex;gap:0.5rem;align-items:center;">
+              <input type="range" id="a11" min="-2" max="2" step="0.05" value="1">
+              <span class="val-display" id="a11d">1.00</span>
+            </div>
+          </div>
+          <div class="ctrl-group">
+            <span class="ctrl-label">∂x/∂v</span>
+            <div style="display:flex;gap:0.5rem;align-items:center;">
+              <input type="range" id="a12" min="-2" max="2" step="0.05" value="0">
+              <span class="val-display" id="a12d">0.00</span>
+            </div>
+          </div>
+          <div class="ctrl-group">
+            <span class="ctrl-label">∂y/∂u</span>
+            <div style="display:flex;gap:0.5rem;align-items:center;">
+              <input type="range" id="a21" min="-2" max="2" step="0.05" value="0">
+              <span class="val-display" id="a21d">0.00</span>
+            </div>
+          </div>
+          <div class="ctrl-group">
+            <span class="ctrl-label">∂y/∂v</span>
+            <div style="display:flex;gap:0.5rem;align-items:center;">
+              <input type="range" id="a22" min="-2" max="2" step="0.05" value="1">
+              <span class="val-display" id="a22d">1.00</span>
+            </div>
+          </div>
+          <button class="btn" id="resetBtn">Reset</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════ SECTION 2: LINEAR MAPS -->
+<section id="s2">
+  <div class="container">
+    <div class="section-tag">§ 02 — The Local Picture</div>
+    <h2>Local Linearity</h2>
+    <div class="divider"></div>
+
+    <p>Differentiability means local linearity. When we say a function <span class="hl">F: ℝⁿ → ℝᵐ</span> is differentiable at a point <strong>p</strong>, we mean there exists a linear map <span class="hl">J</span> such that:</p>
+
+    <div class="formula">
+      F(<b>p</b> + <b>h</b>) = F(<b>p</b>) + J·<b>h</b> + o(‖<b>h</b>‖)<br>
+      <span class="comment">// as ‖h‖ → 0, the error term shrinks faster than h itself</span>
+    </div>
+
+    <p>This is exactly the multivariable Taylor expansion to first order. The matrix <strong>J</strong> is precisely the Jacobian evaluated at <strong>p</strong>. Every direction you approach from, the function behaves like a linear map — but the amount of stretching and rotating depends on which point you're at.</p>
+
+    <!-- VIEWPORT 2: local linearity zoom -->
+    <div class="viewport">
+      <div class="viewport-header">
+        <div class="vp-dot"></div><div class="vp-dot"></div><div class="vp-dot"></div>
+        <span class="viewport-title">INTERACTIVE · Local Linearity — Polar Coords</span>
+      </div>
+      <div class="viewport-body">
+        <p style="font-size:0.9rem; color:var(--muted); margin-bottom:1rem;">
+          The map <span style="color:var(--accent);">F(r,θ) = (r·cos θ, r·sin θ)</span> converts polar to Cartesian. Click anywhere on the left to choose a base point, then zoom to see local linearisation.
+        </p>
+        <div class="two-col">
+          <div>
+            <canvas id="cvPolarIn" width="300" height="300" style="width:100%;max-width:300px;cursor:crosshair;"></canvas>
+            <div class="tooltip">Polar (r, θ) — click to set point</div>
+          </div>
+          <div>
+            <canvas id="cvPolarOut" width="300" height="300" style="width:100%;max-width:300px;"></canvas>
+            <div class="tooltip">Cartesian (x, y)</div>
+          </div>
+        </div>
+        <div class="controls">
+          <div class="ctrl-group">
+            <span class="ctrl-label">Zoom</span>
+            <div style="display:flex;gap:0.5rem;align-items:center;">
+              <input type="range" id="zoomSlider" min="1" max="30" step="0.5" value="1">
+              <span class="val-display" id="zoomVal">1×</span>
+            </div>
+          </div>
+          <div style="font-family:'DM Mono',monospace; font-size:0.75rem; color:var(--muted);">
+            Point: r=<span id="ptR" style="color:var(--accent);">2.00</span>, θ=<span id="ptTh" style="color:var(--accent2);">0.79</span> rad
+          </div>
+        </div>
+        <div class="formula" style="margin-top:1rem; font-size:0.8rem;">
+          J<sub>polar</sub> =  ⎡ cos θ   −r·sin θ ⎤  <span class="comment">// evaluated at chosen point</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⎣ sin θ    r·cos θ ⎦<br><br>
+          det(J) = r·cos²θ + r·sin²θ = <span class="hl" id="polarDetVal">r = 2.00</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════ SECTION 3: THE MATRIX -->
+<section id="s3">
+  <div class="container">
+    <div class="section-tag">§ 03 — The Matrix</div>
+    <h2>Building the Jacobian Matrix</h2>
+    <div class="divider"></div>
+
+    <p>Suppose <span class="hl">F: ℝⁿ → ℝᵐ</span> maps <strong>(x₁, …, xₙ)</strong> to <strong>(y₁, …, yₘ)</strong>. Each output component <em>yᵢ</em> is a scalar function of all inputs. The Jacobian matrix arranges all partial derivatives into a grid:</p>
+
+    <div class="formula">
+      J = ∂(y₁,…,yₘ) / ∂(x₁,…,xₙ)  =<br><br>
+      ⎡ ∂y₁/∂x₁  ∂y₁/∂x₂  ···  ∂y₁/∂xₙ ⎤<br>
+      ⎢ ∂y₂/∂x₁  ∂y₂/∂x₂  ···  ∂y₂/∂xₙ ⎥<br>
+      ⎢    ⋮          ⋮       ⋱      ⋮    ⎥<br>
+      ⎣ ∂yₘ/∂x₁  ∂yₘ/∂x₂  ···  ∂yₘ/∂xₙ ⎦
+    </div>
+
+    <p>Each row <em>i</em> is the gradient of the output <em>yᵢ</em> with respect to all inputs. Each column <em>j</em> answers: "if I nudge input <em>xⱼ</em> slightly, how do all the outputs respond?"</p>
+
+    <h3>Reading the columns as directional derivatives</h3>
+    <p>The <em>j</em>-th column of <strong>J</strong> is literally <span class="hl">DF · eⱼ</span> — the image of the <em>j</em>-th standard basis vector under the linear map. So the columns tell you where the coordinate axes get sent. This is why the Jacobian encodes local geometry so completely.</p>
+
+    <!-- VIEWPORT 3: column vectors interactive -->
+    <div class="viewport">
+      <div class="viewport-header">
+        <div class="vp-dot"></div><div class="vp-dot"></div><div class="vp-dot"></div>
+        <span class="viewport-title">INTERACTIVE · Column Vectors of J</span>
+      </div>
+      <div class="viewport-body">
+        <p style="font-size:0.9rem; color:var(--muted); margin-bottom:1rem;">
+          Drag the two column vectors (where <span style="color:var(--accent);">e₁</span> and <span style="color:var(--accent2);">e₂</span> get sent). The parallelogram they span is the image of the unit square.
+        </p>
+        <canvas id="cvColumns" width="500" height="340" style="width:100%; max-width:500px; cursor:crosshair;"></canvas>
+        <div style="margin-top:1rem; display:flex; gap:1.5rem; flex-wrap:wrap; align-items:flex-start;">
+          <div id="colMatDisplay" class="matrix-display" style="font-size:0.8rem;">
+            J = [ ... ]
+          </div>
+          <div id="colDetDisplay" class="det-display">det(J) = ...</div>
+        </div>
+        <div class="tooltip" style="text-align:left; margin-top:0.5rem;">Drag the <span style="color:var(--accent);">gold arrow tip</span> (col 1) or <span style="color:var(--accent2);">blue arrow tip</span> (col 2)</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════ SECTION 4: DETERMINANT -->
+<section id="s4">
+  <div class="container">
+    <div class="section-tag">§ 04 — The Determinant</div>
+    <h2>The Jacobian Determinant: <em>Area as Currency</em></h2>
+    <div class="divider"></div>
+
+    <p>When the Jacobian is a square matrix (same number of inputs and outputs), its determinant carries a single, beautiful number: the <span class="hl">local area (or volume) scaling factor</span>.</p>
+
+    <div class="two-col">
+      <div class="info-card">
+        <div class="card-title">|det J| &gt; 1</div>
+        <p style="font-size:0.95rem;">The function <strong>expands</strong> area locally. A small patch near this point gets bigger under the map.</p>
+      </div>
+      <div class="info-card">
+        <div class="card-title">|det J| &lt; 1</div>
+        <p style="font-size:0.95rem;">The function <strong>compresses</strong> area locally. A small patch shrinks under the map.</p>
+      </div>
+      <div class="info-card">
+        <div class="card-title">det J = 0</div>
+        <p style="font-size:0.95rem;">The map <strong>collapses</strong> a dimension. The function is singular here — not locally invertible.</p>
+      </div>
+      <div class="info-card">
+        <div class="card-title">det J &lt; 0</div>
+        <p style="font-size:0.95rem;">The map <strong>reverses orientation</strong> — like a reflection. A right-handed region becomes left-handed.</p>
+      </div>
+    </div>
+
+    <p>The sign of det(J) tells you whether the transformation preserves or reverses the local orientation of space. The magnitude tells you by how much area scales. Both matter.</p>
+
+    <!-- VIEWPORT 4: area scaling demo -->
+    <div class="viewport">
+      <div class="viewport-header">
+        <div class="vp-dot"></div><div class="vp-dot"></div><div class="vp-dot"></div>
+        <span class="viewport-title">INTERACTIVE · Nonlinear Map &amp; Area Scaling</span>
+      </div>
+      <div class="viewport-body">
+        <p style="font-size:0.9rem; color:var(--muted); margin-bottom:1rem;">
+          Move the probe point across the input space. The small square near the probe gets mapped to a parallelogram. Its area ratio equals <span style="color:var(--accent);">|det J|</span> at that point.
+        </p>
+        <div class="two-col">
+          <div>
+            <canvas id="cvNlIn" width="300" height="300" style="width:100%;max-width:300px;cursor:crosshair;"></canvas>
+            <div class="tooltip">Input: click to move probe</div>
+          </div>
+          <div>
+            <canvas id="cvNlOut" width="300" height="300" style="width:100%;max-width:300px;"></canvas>
+            <div class="tooltip">Output: mapped region</div>
+          </div>
+        </div>
+        <div class="formula" style="margin-top:1rem; font-size:0.82rem;">
+          Map: F(x,y) = (x² − y, x·y + 0.5·y²)<br>
+          J(x,y) = ⎡ 2x   −1 ⎤<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⎣  y  x+y ⎦<br>
+          det J = 2x(x+y) + y = <span class="hl" id="nlDetVal">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════ SECTION 5: CHAIN RULE -->
+<section id="s5">
+  <div class="container">
+    <div class="section-tag">§ 05 — The Chain Rule</div>
+    <h2>Composition &amp; the Jacobian Chain Rule</h2>
+    <div class="divider"></div>
+
+    <p>The most important theorem about Jacobians is how they compose. If you chain two maps — <span class="hl">G ∘ F</span> — the Jacobian of the composition is the <em>product</em> of the individual Jacobians:</p>
+
+    <div class="formula">
+      J<sub>(G∘F)</sub>(<b>x</b>) = J<sub>G</sub>(F(<b>x</b>)) · J<sub>F</sub>(<b>x</b>)<br>
+      <span class="comment">// matrix multiplication — order matters!</span>
+    </div>
+
+    <p>This is exactly the multivariable chain rule. It says: "the total linear stretching of a composition is the <em>sequential product</em> of the individual linear stretchings." Since matrices multiply, this also means:</p>
+
+    <div class="formula">
+      det(J<sub>G∘F</sub>) = det(J<sub>G</sub>) · det(J<sub>F</sub>)<br>
+      <span class="comment">// area scaling factors multiply</span>
+    </div>
+
+    <div class="callout">
+      If F doubles area locally and G triples area locally, then G∘F scales area by 6× locally. The Jacobian determinant is multiplicative under composition — like a "magnification factor" that chains.
+    </div>
+
+    <h3>Why does this matter for backpropagation?</h3>
+    <p>Neural networks are compositions of functions. The chain rule for Jacobians is literally how gradients flow backward through layers. Each layer's Jacobian participates in the product — which is why deep networks can suffer from vanishing or exploding gradients when those Jacobian magnitudes are consistently less than or greater than 1.</p>
+
+    <!-- VIEWPORT 5: chain rule composition -->
+    <div class="viewport">
+      <div class="viewport-header">
+        <div class="vp-dot"></div><div class="vp-dot"></div><div class="vp-dot"></div>
+        <span class="viewport-title">INTERACTIVE · Composition of Two Linear Maps</span>
+      </div>
+      <div class="viewport-body">
+        <p style="font-size:0.9rem; color:var(--muted); margin-bottom:1rem;">
+          Adjust two separate linear maps F and G. See their individual Jacobians and how the composed Jacobian J<sub>G∘F</sub> = J<sub>G</sub>·J<sub>F</sub> equals the product.
+        </p>
+        <canvas id="cvChain" width="560" height="280" style="width:100%;max-width:560px;"></canvas>
+        <div style="display:flex; gap:1.5rem; flex-wrap:wrap; margin-top:1rem;">
+          <div>
+            <div class="ctrl-label" style="margin-bottom:0.5rem;">Map F — rotation + scale</div>
+            <div class="controls" style="margin:0;">
+              <div class="ctrl-group">
+                <span class="ctrl-label">Angle F</span>
+                <div style="display:flex;gap:.4rem;align-items:center;">
+                  <input type="range" id="fAngle" min="0" max="360" step="1" value="30">
+                  <span class="val-display" id="fAngleD">30°</span>
+                </div>
+              </div>
+              <div class="ctrl-group">
+                <span class="ctrl-label">Scale F</span>
+                <div style="display:flex;gap:.4rem;align-items:center;">
+                  <input type="range" id="fScale" min="0.2" max="2.5" step="0.05" value="1.2">
+                  <span class="val-display" id="fScaleD">1.20</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="ctrl-label" style="margin-bottom:0.5rem;">Map G — shear + scale</div>
+            <div class="controls" style="margin:0;">
+              <div class="ctrl-group">
+                <span class="ctrl-label">Shear G</span>
+                <div style="display:flex;gap:.4rem;align-items:center;">
+                  <input type="range" id="gShear" min="-1.5" max="1.5" step="0.05" value="0.5">
+                  <span class="val-display" id="gShearD">0.50</span>
+                </div>
+              </div>
+              <div class="ctrl-group">
+                <span class="ctrl-label">Scale G</span>
+                <div style="display:flex;gap:.4rem;align-items:center;">
+                  <input type="range" id="gScale" min="0.2" max="2.5" step="0.05" value="0.8">
+                  <span class="val-display" id="gScaleD">0.80</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="chainStats" class="formula" style="margin-top:1rem; font-size:0.8rem;"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════ SECTION 6: CHANGE OF VARIABLES -->
+<section id="s6">
+  <div class="container">
+    <div class="section-tag">§ 06 — Change of Variables</div>
+    <h2>Integration &amp; Change of Variables</h2>
+    <div class="divider"></div>
+
+    <p>The most practically important use of the Jacobian is in <span class="hl">change of variables for integrals</span>. When you substitute <strong>u = G(x)</strong> in a multivariable integral, the area element <em>dA</em> transforms:</p>
+
+    <div class="formula">
+      ∬<sub>R</sub> f(x, y) dx dy  =  ∬<sub>S</sub> f(G(u,v)) · |det J<sub>G</sub>(u,v)| du dv<br>
+      <span class="comment">// the |det J| corrects for how area is distorted by the substitution</span>
+    </div>
+
+    <p>This is deep: when you "change coordinates", you must account for how the new coordinates stretch or compress area. The Jacobian determinant is precisely that correction factor. Without it, you'd compute the wrong integral.</p>
+
+    <h3>Polar coordinates: the classic example</h3>
+    <p>The polar map is <span class="hl">F(r,θ) = (r cos θ, r sin θ)</span>. Its Jacobian determinant is <span class="hl">r</span>. That's why:</p>
+
+    <div class="formula">
+      ∬ f(x,y) dx dy  =  ∬ f(r cos θ, r sin θ) · <span class="hl">r</span> dr dθ<br>
+      <span class="comment">// the "r" in polar area elements comes from det(J_polar) = r</span>
+    </div>
+
+    <!-- VIEWPORT 6: polar area element -->
+    <div class="viewport">
+      <div class="viewport-header">
+        <div class="vp-dot"></div><div class="vp-dot"></div><div class="vp-dot"></div>
+        <span class="viewport-title">INTERACTIVE · Why There's an "r" in Polar Integration</span>
+      </div>
+      <div class="viewport-body">
+        <p style="font-size:0.9rem; color:var(--muted); margin-bottom:1rem;">
+          A tiny rectangle of size Δr × Δθ in polar space maps to a curved patch in Cartesian space. Its actual area is ≈ r·Δr·Δθ. Drag to explore how this area ratio (= det J = r) varies with position.
+        </p>
+        <div class="two-col">
+          <div>
+            <canvas id="cvPolarAreaIn" width="300" height="300" style="width:100%;max-width:300px;cursor:crosshair;"></canvas>
+            <div class="tooltip">Polar coords — drag the patch</div>
+          </div>
+          <div>
+            <canvas id="cvPolarAreaOut" width="300" height="300" style="width:100%;max-width:300px;"></canvas>
+            <div class="tooltip">Cartesian: actual area of patch</div>
+          </div>
+        </div>
+        <div class="formula" style="margin-top:1rem; font-size:0.85rem;">
+          r = <span class="hl" id="polarR">2.00</span>,  θ = <span class="hl2" id="polarTheta">45°</span><br>
+          Area of rectangle in polar space: Δr·Δθ = <span id="polarRectArea" class="hl3">—</span><br>
+          Actual area in Cartesian space: ≈ r·Δr·Δθ = <span id="polarActArea" class="hl">—</span><br>
+          Ratio = |det J| = r = <span class="hl" id="polarRatio">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sep"></div>
+
+    <h3>Summary: The Jacobian in one glance</h3>
+    <div class="two-col">
+      <div class="info-card">
+        <div class="card-title">As a linear map</div>
+        <p style="font-size:0.9rem;">J is the best linear approximation of F at a point. It maps velocity vectors in the input to velocity vectors in the output.</p>
+      </div>
+      <div class="info-card">
+        <div class="card-title">As a matrix</div>
+        <p style="font-size:0.9rem;">J contains all first-order partial derivatives, arranged so that J·h = the first-order change in F when the input shifts by h.</p>
+      </div>
+      <div class="info-card">
+        <div class="card-title">As a determinant</div>
+        <p style="font-size:0.9rem;">|det J| gives the local volume scaling factor. Its sign encodes orientation. Zero means the map collapses a dimension.</p>
+      </div>
+      <div class="info-card">
+        <div class="card-title">In integration</div>
+        <p style="font-size:0.9rem;">|det J| appears as the correction factor in change-of-variables formulas, accounting for how coordinates distort area/volume.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    The Jacobian · Visual Essay · Multivariable Calculus
+  </div>
+</footer>
+
+<!-- ══════════════════════════════════════════ SCRIPTS -->
+<script>
+// ─────────────────────────────────────────────
+// UTILS
+// ─────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const TAU = Math.PI * 2;
+
+function drawArrow(ctx, x1,y1,x2,y2,color,lw=2,hs=10){
+  ctx.save();
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=lw;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  const a=Math.atan2(y2-y1,x2-x1);
+  ctx.beginPath();
+  ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-hs*Math.cos(a-0.35),y2-hs*Math.sin(a-0.35));
+  ctx.lineTo(x2-hs*Math.cos(a+0.35),y2-hs*Math.sin(a+0.35));
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function clearCanvas(cv, bg='#16161c'){
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,cv.width,cv.height);
+}
+
+function drawGrid(cv, cx,cy, scale, col='rgba(255,255,255,0.07)', steps=10){
+  const ctx=cv.getContext('2d');
+  ctx.strokeStyle=col; ctx.lineWidth=0.5;
+  for(let i=-steps;i<=steps;i++){
+    ctx.beginPath(); ctx.moveTo(cx+i*scale,0); ctx.lineTo(cx+i*scale,cv.height); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,cy+i*scale); ctx.lineTo(cv.width,cy+i*scale); ctx.stroke();
+  }
+  ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(cx,0); ctx.lineTo(cx,cv.height); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,cy); ctx.lineTo(cv.width,cy); ctx.stroke();
+}
+
+// ─────────────────────────────────────────────
+// VIEWPORT 1 — Grid Deformation
+// ─────────────────────────────────────────────
+(function(){
+  const cvIn=$('cvInput'), cvOut=$('cvOutput');
+  const SZ=300, CX=SZ/2, CY=SZ/2, SC=35;
+  let a=[1,0,0,1];
+
+  function getA(){
+    return [
+      parseFloat($('a11').value),
+      parseFloat($('a12').value),
+      parseFloat($('a21').value),
+      parseFloat($('a22').value)
+    ];
+  }
+
+  function drawInput(){
+    clearCanvas(cvIn);
+    const ctx=cvIn.getContext('2d');
+    drawGrid(cvIn,CX,CY,SC);
+    // highlight unit square
+    ctx.strokeStyle='rgba(232,201,109,0.4)';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);
+    ctx.strokeRect(CX,CY-SC,SC,SC);
+    ctx.setLineDash([]);
+    // axes labels
+    ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='11px DM Mono,monospace';
+    ctx.fillText('u',CX+SZ/2-18,CY-4);
+    ctx.fillText('v',CX+4,12);
+  }
+
+  function drawOutput(){
+    clearCanvas(cvOut);
+    const ctx=cvOut.getContext('2d');
+    a=getA();
+    // draw transformed grid lines
+    const N=20, range=6;
+    ctx.lineWidth=0.5;
+    // vertical lines in input → transformed
+    for(let i=-range;i<=range;i++){
+      ctx.strokeStyle=i===0?'rgba(255,255,255,0.25)':'rgba(255,255,255,0.07)';
+      ctx.beginPath();
+      for(let j=-range;j<=range;j++){
+        const u=i, v=j;
+        const x=CX+(a[0]*u+a[1]*v)*SC;
+        const y=CY-(a[2]*u+a[3]*v)*SC;
+        j===-range?ctx.moveTo(x,y):ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+    }
+    // horizontal lines
+    for(let j=-range;j<=range;j++){
+      ctx.strokeStyle=j===0?'rgba(255,255,255,0.25)':'rgba(255,255,255,0.07)';
+      ctx.beginPath();
+      for(let i=-range;i<=range;i++){
+        const u=i, v=j;
+        const x=CX+(a[0]*u+a[1]*v)*SC;
+        const y=CY-(a[2]*u+a[3]*v)*SC;
+        i===-range?ctx.moveTo(x,y):ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+    }
+    // transformed unit square
+    const pts=[[0,0],[1,0],[1,1],[0,1]].map(([u,v])=>[
+      CX+(a[0]*u+a[1]*v)*SC, CY-(a[2]*u+a[3]*v)*SC
+    ]);
+    ctx.save();
+    ctx.fillStyle='rgba(232,201,109,0.12)';
+    ctx.strokeStyle='rgba(232,201,109,0.7)';ctx.lineWidth=1.5;
+    ctx.beginPath();
+    pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));
+    ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.restore();
+    // column vectors
+    drawArrow(ctx,CX,CY,CX+a[0]*SC,CY-a[2]*SC,'#e8c96d',2.5);
+    drawArrow(ctx,CX,CY,CX+a[1]*SC,CY-a[3]*SC,'#7eb8f7',2.5);
+  }
+
+  function updateDisplays(){
+    a=getA();
+    $('a11v').textContent=a[0].toFixed(2); $('a12v').textContent=a[1].toFixed(2);
+    $('a21v').textContent=a[2].toFixed(2); $('a22v').textContent=a[3].toFixed(2);
+    $('a11d').textContent=a[0].toFixed(2); $('a12d').textContent=a[1].toFixed(2);
+    $('a21d').textContent=a[2].toFixed(2); $('a22d').textContent=a[3].toFixed(2);
+    const det=a[0]*a[3]-a[1]*a[2];
+    let msg=det.toFixed(3)+(Math.abs(det)>1.01?' → area expands':Math.abs(det)<0.99?' → area compresses':' → area preserved');
+    if(Math.abs(det)<0.01) msg=det.toFixed(3)+' → SINGULAR (collapses)';
+    if(det<0) msg+=', orientation reversed';
+    $('detDisplay').textContent='det(J) = '+msg;
+  }
+
+  ['a11','a12','a21','a22'].forEach(id=>{
+    $(id).addEventListener('input',()=>{ updateDisplays(); drawOutput(); });
+  });
+
+  $('resetBtn').addEventListener('click',()=>{
+    $('a11').value=1;$('a12').value=0;$('a21').value=0;$('a22').value=1;
+    updateDisplays(); drawOutput();
+  });
+
+  drawInput(); drawOutput(); updateDisplays();
+})();
+
+// ─────────────────────────────────────────────
+// VIEWPORT 2 — Polar Local Linearity
+// ─────────────────────────────────────────────
+(function(){
+  const cvIn=$('cvPolarIn'), cvOut=$('cvPolarOut');
+  const SZ=300, SC=45;
+  let ptR=2.0, ptTh=Math.PI/4, zoom=1;
+  const RMAX=3, THMAX=Math.PI*2;
+  const CXin=SZ/2, CYin=SZ/2;
+
+  function polarToCart(r,th){ return [r*Math.cos(th), r*Math.sin(th)]; }
+
+  function drawPolarIn(){
+    clearCanvas(cvIn);
+    const ctx=cvIn.getContext('2d');
+    const scR=SZ/(RMAX*2+0.5);
+    const scTh=SZ/(THMAX+0.3);
+    // grid
+    ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=0.5;
+    for(let r=0;r<=RMAX;r+=0.5){
+      ctx.beginPath();ctx.moveTo(r*scR,0);ctx.lineTo(r*scR,SZ);ctx.stroke();
+    }
+    for(let t=0;t<=THMAX;t+=Math.PI/6){
+      ctx.beginPath();ctx.moveTo(0,t*scTh);ctx.lineTo(SZ,t*scTh);ctx.stroke();
+    }
+    ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(0,SZ/2);ctx.lineTo(SZ,SZ/2);ctx.stroke();
+    // chosen point
+    const px=ptR*scR, py=ptTh*scTh;
+    const dR=0.4/zoom, dTh=0.25/zoom;
+    ctx.strokeStyle='rgba(232,201,109,0.7)';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);
+    ctx.strokeRect(px-dR*scR, py-dTh*scTh, 2*dR*scR, 2*dTh*scTh);
+    ctx.setLineDash([]);
+    ctx.fillStyle='#e8c96d';
+    ctx.beginPath();ctx.arc(px,py,5,0,TAU);ctx.fill();
+    // labels
+    ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='10px DM Mono,monospace';
+    ctx.fillText('r →',SZ-30,CYin-4);ctx.fillText('θ ↓',4,12);
+  }
+
+  function drawPolarOut(){
+    clearCanvas(cvOut);
+    const ctx=cvOut.getContext('2d');
+    const CX=SZ/2, CY=SZ/2;
+    drawGrid(cvOut,CX,CY,SC*0.7,'rgba(255,255,255,0.05)');
+    // curved grid
+    ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=0.5;
+    for(let r=0.5;r<=RMAX;r+=0.5){
+      ctx.beginPath();
+      for(let t=0;t<=THMAX;t+=0.05){
+        const [x,y]=polarToCart(r,t);
+        const px=CX+x*SC*0.7, py=CY-y*SC*0.7;
+        t===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      }
+      ctx.stroke();
+    }
+    for(let t=0;t<=THMAX;t+=Math.PI/6){
+      ctx.beginPath();
+      for(let r=0;r<=RMAX;r+=0.1){
+        const [x,y]=polarToCart(r,t);
+        const px=CX+x*SC*0.7, py=CY-y*SC*0.7;
+        r===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      }
+      ctx.stroke();
+    }
+    // mapped patch
+    const dR=0.4/zoom, dTh=0.25/zoom;
+    const corners=[];
+    for(const [r,t] of [[ptR-dR,ptTh-dTh],[ptR+dR,ptTh-dTh],[ptR+dR,ptTh+dTh],[ptR-dR,ptTh+dTh]]){
+      const [x,y]=polarToCart(Math.max(0,r),t);
+      corners.push([CX+x*SC*0.7, CY-y*SC*0.7]);
+    }
+    ctx.save();
+    ctx.fillStyle='rgba(232,201,109,0.15)';ctx.strokeStyle='rgba(232,201,109,0.8)';ctx.lineWidth=1.5;
+    ctx.beginPath();corners.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));
+    ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
+    // Jacobian column vectors at point
+    const scA=SC*0.7;
+    const [bx,by]=polarToCart(ptR,ptTh);
+    const bpx=CX+bx*scA, bpy=CY-by*scA;
+    // col1: (cos θ, sin θ) scaled
+    drawArrow(ctx,bpx,bpy,bpx+Math.cos(ptTh)*scA*0.5,bpy-Math.sin(ptTh)*scA*0.5,'#e8c96d',2);
+    // col2: (-r sinθ, r cosθ)
+    drawArrow(ctx,bpx,bpy,bpx-ptR*Math.sin(ptTh)*scA*0.25,bpy-ptR*Math.cos(ptTh)*scA*0.25,'#7eb8f7',2);
+    ctx.fillStyle='#e8c96d';ctx.beginPath();ctx.arc(bpx,bpy,5,0,TAU);ctx.fill();
+  }
+
+  function update(){
+    $('ptR').textContent=ptR.toFixed(2);
+    $('ptTh').textContent=ptTh.toFixed(2);
+    $('zoomVal').textContent=zoom.toFixed(1)+'×';
+    $('polarDetVal').textContent='r = '+ptR.toFixed(2);
+    drawPolarIn(); drawPolarOut();
+  }
+
+  cvIn.addEventListener('click',e=>{
+    const rect=cvIn.getBoundingClientRect();
+    const sx=(e.clientX-rect.left)*cvIn.width/rect.width;
+    const sy=(e.clientY-rect.top)*cvIn.height/rect.height;
+    const RMAX=3, THMAX=Math.PI*2;
+    ptR=Math.max(0.2, sx/cvIn.width*(RMAX+0.5)*2-0.25);
+    ptTh=sy/cvIn.height*(THMAX+0.3)-0.15;
+    ptTh=Math.max(0.05,Math.min(THMAX-0.05,ptTh));
+    update();
+  });
+
+  $('zoomSlider').addEventListener('input',e=>{
+    zoom=parseFloat(e.target.value); update();
+  });
+
+  update();
+})();
+
+// ─────────────────────────────────────────────
+// VIEWPORT 3 — Column Vectors Drag
+// ─────────────────────────────────────────────
+(function(){
+  const cv=$('cvColumns');
+  const W=560, H=340, CX=W/2, CY=H/2, SC=55;
+  let c1=[1,0], c2=[0,1];
+  let dragging=null;
+
+  function worldToScreen(wx,wy){ return [CX+wx*SC, CY-wy*SC]; }
+  function screenToWorld(sx,sy){ return [(sx-CX)/SC, -(sy-CY)/SC]; }
+
+  function draw(){
+    clearCanvas(cv);
+    const ctx=cv.getContext('2d');
+    drawGrid(cv,CX,CY,SC);
+    // parallelogram
+    const o=[CX,CY];
+    const p1=worldToScreen(c1[0],c1[1]);
+    const p2=worldToScreen(c2[0],c2[1]);
+    const p12=worldToScreen(c1[0]+c2[0],c1[1]+c2[1]);
+    const det=c1[0]*c2[1]-c1[1]*c2[0];
+    const alpha=Math.min(0.35, Math.abs(det)*0.1+0.05);
+    ctx.save();
+    ctx.fillStyle=det>=0?`rgba(232,201,109,${alpha})`:`rgba(240,122,122,${alpha})`;
+    ctx.strokeStyle=det>=0?'rgba(232,201,109,0.5)':'rgba(240,122,122,0.5)';ctx.lineWidth=1.5;
+    ctx.beginPath();
+    ctx.moveTo(...o);ctx.lineTo(...p1);ctx.lineTo(...p12);ctx.lineTo(...p2);
+    ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.restore();
+    // arrows
+    drawArrow(ctx,...o,...p1,'#e8c96d',2.5);
+    drawArrow(ctx,...o,...p2,'#7eb8f7',2.5);
+    // labels
+    ctx.fillStyle='#e8c96d';ctx.font='bold 13px Playfair Display,serif';
+    ctx.fillText('c₁',p1[0]+6,p1[1]-6);
+    ctx.fillStyle='#7eb8f7';
+    ctx.fillText('c₂',p2[0]+6,p2[1]-6);
+    // update displays
+    $('colMatDisplay').innerHTML=
+      `∂x/∂u = <span class="hl">${c1[0].toFixed(2)}</span>   ∂x/∂v = <span class="hl2">${c2[0].toFixed(2)}</span><br>`+
+      `∂y/∂u = <span class="hl3">${c1[1].toFixed(2)}</span>   ∂y/∂v = <span class="hl">${c2[1].toFixed(2)}</span>`;
+    const d=(c1[0]*c2[1]-c1[1]*c2[0]);
+    $('colDetDisplay').textContent=`det(J) = ${d.toFixed(3)} → area ×${Math.abs(d).toFixed(3)}${d<0?' (orientation flipped)':''}`;
+  }
+
+  function hitTest(sx,sy){
+    const p1=worldToScreen(c1[0],c1[1]);
+    const p2=worldToScreen(c2[0],c2[1]);
+    if(Math.hypot(sx-p1[0],sy-p1[1])<14) return 1;
+    if(Math.hypot(sx-p2[0],sy-p2[1])<14) return 2;
+    return 0;
+  }
+
+  cv.addEventListener('mousedown',e=>{
+    const r=cv.getBoundingClientRect();
+    const sx=(e.clientX-r.left)*W/r.width;
+    const sy=(e.clientY-r.top)*H/r.height;
+    dragging=hitTest(sx,sy);
+  });
+
+  cv.addEventListener('mousemove',e=>{
+    if(!dragging) return;
+    const r=cv.getBoundingClientRect();
+    const sx=(e.clientX-r.left)*W/r.width;
+    const sy=(e.clientY-r.top)*H/r.height;
+    const [wx,wy]=screenToWorld(sx,sy);
+    if(dragging===1) c1=[Math.round(wx*4)/4, Math.round(wy*4)/4];
+    else c2=[Math.round(wx*4)/4, Math.round(wy*4)/4];
+    draw();
+  });
+
+  cv.addEventListener('mouseup',()=>{ dragging=null; });
+  cv.addEventListener('mouseleave',()=>{ dragging=null; });
+
+  // Touch support
+  cv.addEventListener('touchstart',e=>{
+    e.preventDefault();
+    const t=e.touches[0], r=cv.getBoundingClientRect();
+    const sx=(t.clientX-r.left)*W/r.width, sy=(t.clientY-r.top)*H/r.height;
+    dragging=hitTest(sx,sy);
+  });
+  cv.addEventListener('touchmove',e=>{
+    e.preventDefault();
+    if(!dragging) return;
+    const t=e.touches[0], r=cv.getBoundingClientRect();
+    const sx=(t.clientX-r.left)*W/r.width, sy=(t.clientY-r.top)*H/r.height;
+    const [wx,wy]=screenToWorld(sx,sy);
+    if(dragging===1) c1=[Math.round(wx*4)/4, Math.round(wy*4)/4];
+    else c2=[Math.round(wx*4)/4, Math.round(wy*4)/4];
+    draw();
+  });
+
+  draw();
+})();
+
+// ─────────────────────────────────────────────
+// VIEWPORT 4 — Nonlinear Map & area scaling
+// ─────────────────────────────────────────────
+(function(){
+  const cvIn=$('cvNlIn'), cvOut=$('cvNlOut');
+  const SZ=300;
+  const CX=SZ/2, CY=SZ/2;
+  const SC=45, eps=0.25;
+  let px=0.8, py=0.5;
+
+  function F(x,y){ return [x*x - y, x*y + 0.5*y*y]; }
+  function JacF(x,y){ return [[2*x,-1],[y, x+y]]; }
+
+  function drawNlIn(){
+    clearCanvas(cvIn);
+    const ctx=cvIn.getContext('2d');
+    drawGrid(cvIn,CX,CY,SC);
+    // small square around point
+    const corners=[[px-eps,py-eps],[px+eps,py-eps],[px+eps,py+eps],[px-eps,py+eps]];
+    ctx.save();
+    ctx.fillStyle='rgba(232,201,109,0.15)';ctx.strokeStyle='rgba(232,201,109,0.7)';ctx.lineWidth=1.5;
+    ctx.beginPath();
+    corners.forEach(([x,y],i)=>{ const sx=CX+x*SC,sy=CY-y*SC; i?ctx.lineTo(sx,sy):ctx.moveTo(sx,sy); });
+    ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
+    ctx.fillStyle='#e8c96d';ctx.beginPath();ctx.arc(CX+px*SC,CY-py*SC,5,0,Math.PI*2);ctx.fill();
+  }
+
+  function drawNlOut(){
+    clearCanvas(cvOut);
+    const ctx=cvOut.getContext('2d');
+    // transformed background grid (sparse)
+    const range=3, step=0.4;
+    ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=0.5;
+    for(let xi=-range;xi<=range;xi+=step){
+      ctx.beginPath();
+      let first=true;
+      for(let yi=-range;yi<=range;yi+=0.05){
+        const [x,y]=F(xi,yi);
+        const sx=CX+x*SC*0.55, sy=CY-y*SC*0.55;
+        first?ctx.moveTo(sx,sy):ctx.lineTo(sx,sy); first=false;
+      }
+      ctx.stroke();
+    }
+    for(let yi=-range;yi<=range;yi+=step){
+      ctx.beginPath();
+      let first=true;
+      for(let xi=-range;xi<=range;xi+=0.05){
+        const [x,y]=F(xi,yi);
+        const sx=CX+x*SC*0.55, sy=CY-y*SC*0.55;
+        first?ctx.moveTo(sx,sy):ctx.lineTo(sx,sy); first=false;
+      }
+      ctx.stroke();
+    }
+    // mapped patch (curved properly)
+    const N=30;
+    const patchPts=[];
+    // bottom edge
+    for(let i=0;i<=N;i++) patchPts.push([px-eps+(2*eps*i/N), py-eps]);
+    // right edge
+    for(let i=0;i<=N;i++) patchPts.push([px+eps, py-eps+(2*eps*i/N)]);
+    // top edge (reversed)
+    for(let i=0;i<=N;i++) patchPts.push([px+eps-(2*eps*i/N), py+eps]);
+    // left edge (reversed)
+    for(let i=0;i<=N;i++) patchPts.push([px-eps, py+eps-(2*eps*i/N)]);
+    ctx.save();
+    ctx.fillStyle='rgba(232,201,109,0.2)';ctx.strokeStyle='rgba(232,201,109,0.8)';ctx.lineWidth=1.5;
+    ctx.beginPath();
+    patchPts.forEach(([xi,yi],i)=>{
+      const [x,y]=F(xi,yi);
+      const sx=CX+x*SC*0.55, sy=CY-y*SC*0.55;
+      i?ctx.lineTo(sx,sy):ctx.moveTo(sx,sy);
+    });
+    ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
+    // mapped center point
+    const [fpx,fpy]=F(px,py);
+    ctx.fillStyle='#e8c96d';ctx.beginPath();ctx.arc(CX+fpx*SC*0.55,CY-fpy*SC*0.55,5,0,Math.PI*2);ctx.fill();
+    // det display
+    const J=JacF(px,py);
+    const det=J[0][0]*J[1][1]-J[0][1]*J[1][0];
+    $('nlDetVal').textContent=det.toFixed(3);
+  }
+
+  cvIn.addEventListener('click',e=>{
+    const r=cvIn.getBoundingClientRect();
+    const sx=(e.clientX-r.left)*SZ/r.width;
+    const sy=(e.clientY-r.top)*SZ/r.height;
+    px=(sx-CX)/SC; py=-(sy-CY)/SC;
+    drawNlIn(); drawNlOut();
+  });
+
+  drawNlIn(); drawNlOut();
+})();
+
+// ─────────────────────────────────────────────
+// VIEWPORT 5 — Chain Rule Composition
+// ─────────────────────────────────────────────
+(function(){
+  const cv=$('cvChain');
+  const W=560,H=280, SC=40;
+
+  function getParams(){
+    const fa=parseFloat($('fAngle').value)*Math.PI/180;
+    const fs=parseFloat($('fScale').value);
+    const gs=parseFloat($('gShear').value);
+    const gsc=parseFloat($('gScale').value);
+    return {fa,fs,gs,gsc};
+  }
+
+  function matF(fa,fs){
+    return [[fs*Math.cos(fa),-fs*Math.sin(fa)],[fs*Math.sin(fa),fs*Math.cos(fa)]];
+  }
+
+  function matG(gs,gsc){
+    return [[gsc, gs],[0, gsc]];
+  }
+
+  function matMul(A,B){
+    return [
+      [A[0][0]*B[0][0]+A[0][1]*B[1][0], A[0][0]*B[0][1]+A[0][1]*B[1][1]],
+      [A[1][0]*B[0][0]+A[1][1]*B[1][0], A[1][0]*B[0][1]+A[1][1]*B[1][1]]
+    ];
+  }
+
+  function det(M){ return M[0][0]*M[1][1]-M[0][1]*M[1][0]; }
+
+  function drawGrid3(ctx,cx,cy,sc,label){
+    const cols=['rgba(255,255,255,0.05)','rgba(255,255,255,0.15)'];
+    for(let i=-5;i<=5;i++){
+      ctx.strokeStyle=i===0?cols[1]:cols[0];ctx.lineWidth=i===0?1:0.5;
+      ctx.beginPath();ctx.moveTo(cx+i*sc,0);ctx.lineTo(cx+i*sc,H);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(0,cy+i*sc);ctx.lineTo(W/3+2,cy+i*sc);ctx.stroke();
+    }
+  }
+
+  function drawTransformedGrid(ctx, cx, cy, sc, M){
+    ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=0.5;
+    for(let i=-5;i<=5;i++){
+      ctx.beginPath();
+      for(let j=-5;j<=5;j++){
+        const u=i,v=j;
+        const x=cx+(M[0][0]*u+M[0][1]*v)*sc;
+        const y=cy-(M[1][0]*u+M[1][1]*v)*sc;
+        j===-5?ctx.moveTo(x,y):ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+      ctx.beginPath();
+      for(let j=-5;j<=5;j++){
+        const u=j,v=i;
+        const x=cx+(M[0][0]*u+M[0][1]*v)*sc;
+        const y=cy-(M[1][0]*u+M[1][1]*v)*sc;
+        j===-5?ctx.moveTo(x,y):ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+    }
+    // column vectors
+    drawArrow(ctx,cx,cy,cx+M[0][0]*sc,cy-M[1][0]*sc,'#e8c96d',2);
+    drawArrow(ctx,cx,cy,cx+M[0][1]*sc,cy-M[1][1]*sc,'#7eb8f7',2);
+  }
+
+  function draw(){
+    clearCanvas(cv);
+    const ctx=cv.getContext('2d');
+    const {fa,fs,gs,gsc}=getParams();
+    const JF=matF(fa,fs);
+    const JG=matG(gs,gsc);
+    const JC=matMul(JG,JF);
+    const pW=W/3;
+    // panel borders
+    ctx.strokeStyle='rgba(255,255,255,0.08)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(pW,0);ctx.lineTo(pW,H);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(pW*2,0);ctx.lineTo(pW*2,H);ctx.stroke();
+    const cy=H/2;
+    // input
+    const cx0=pW/2;
+    drawGrid3(ctx,cx0,cy,SC,'u');
+    drawArrow(ctx,cx0,cy,cx0+SC,cy,'#e8c96d',2);
+    drawArrow(ctx,cx0,cy,cx0,cy-SC,'#7eb8f7',2);
+    ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='10px DM Mono,monospace';
+    ctx.fillText('INPUT',cx0-20,12);
+    // after F
+    const cx1=pW+pW/2;
+    drawTransformedGrid(ctx,cx1,cy,SC,JF);
+    ctx.fillStyle='rgba(232,201,109,0.5)';ctx.font='10px DM Mono,monospace';
+    ctx.fillText('after F',cx1-20,12);
+    // after G∘F
+    const cx2=pW*2+pW/2;
+    drawTransformedGrid(ctx,cx2,cy,SC,JC);
+    ctx.fillStyle='rgba(126,184,247,0.5)';ctx.font='10px DM Mono,monospace';
+    ctx.fillText('after G∘F',cx2-25,12);
+    // update stats
+    const dF=det(JF), dG=det(JG), dC=det(JC);
+    $('chainStats').innerHTML=
+      `J<sub>F</sub>: ⎡${JF[0].map(v=>v.toFixed(2)).join('  ')}⎤  det = <span class="hl">${dF.toFixed(3)}</span>\n`+
+      `      ⎣${JF[1].map(v=>v.toFixed(2)).join('  ')}⎦\n\n`+
+      `J<sub>G</sub>: ⎡${JG[0].map(v=>v.toFixed(2)).join('  ')}⎤  det = <span class="hl2">${dG.toFixed(3)}</span>\n`+
+      `      ⎣${JG[1].map(v=>v.toFixed(2)).join('  ')}⎦\n\n`+
+      `J<sub>G∘F</sub> = J<sub>G</sub>·J<sub>F</sub>: ⎡${JC[0].map(v=>v.toFixed(2)).join('  ')}⎤  det = <span class="hl3">${dC.toFixed(3)}</span> = ${dG.toFixed(2)}×${dF.toFixed(2)}`;
+    $('fAngleD').textContent=$('fAngle').value+'°';
+    $('fScaleD').textContent=parseFloat($('fScale').value).toFixed(2);
+    $('gShearD').textContent=parseFloat($('gShear').value).toFixed(2);
+    $('gScaleD').textContent=parseFloat($('gScale').value).toFixed(2);
+  }
+
+  ['fAngle','fScale','gShear','gScale'].forEach(id=>$(id).addEventListener('input',draw));
+  draw();
+})();
+
+// ─────────────────────────────────────────────
+// VIEWPORT 6 — Polar area element
+// ─────────────────────────────────────────────
+(function(){
+  const cvIn=$('cvPolarAreaIn'), cvOut=$('cvPolarAreaOut');
+  const SZ=300, DR=0.3, DTH=0.4;
+  let ptR=2.0, ptTh=Math.PI/4;
+
+  function drawIn(){
+    clearCanvas(cvIn);
+    const ctx=cvIn.getContext('2d');
+    const scR=SZ/4, scTh=SZ/(Math.PI*2+0.5);
+    ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=0.5;
+    for(let r=0;r<=3;r+=0.5){ ctx.beginPath();ctx.moveTo(r*scR,0);ctx.lineTo(r*scR,SZ);ctx.stroke(); }
+    for(let t=0;t<=Math.PI*2;t+=Math.PI/6){ ctx.beginPath();ctx.moveTo(0,t*scTh);ctx.lineTo(SZ,t*scTh);ctx.stroke(); }
+    // patch
+    const rx=ptR*scR, ty=ptTh*scTh;
+    ctx.save();
+    ctx.fillStyle='rgba(126,184,247,0.2)';ctx.strokeStyle='rgba(126,184,247,0.8)';ctx.lineWidth=1.5;
+    ctx.strokeRect(rx, ty, DR*scR, DTH*scTh);
+    ctx.fillRect(rx, ty, DR*scR, DTH*scTh);
+    ctx.restore();
+    ctx.fillStyle='#7eb8f7';ctx.beginPath();ctx.arc(rx,ty,5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='10px DM Mono,monospace';
+    ctx.fillText('r →',SZ-30,SZ/2-4);ctx.fillText('θ ↓',4,12);
+  }
+
+  function drawOut(){
+    clearCanvas(cvOut);
+    const ctx=cvOut.getContext('2d');
+    const CX=SZ/2, CY=SZ/2, SC=55;
+    // polar grid
+    ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=0.5;
+    for(let r=0.5;r<=3;r+=0.5){
+      ctx.beginPath();
+      for(let t=0;t<=Math.PI*2;t+=0.05){
+        const x=CX+r*Math.cos(t)*SC*0.7, y=CY-r*Math.sin(t)*SC*0.7;
+        t===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+      }ctx.stroke();
+    }
+    // patch as curved region
+    const N=40;
+    const pts=[];
+    for(let i=0;i<=N;i++) pts.push([ptR, ptTh+DTH*i/N]);
+    for(let i=0;i<=N;i++) pts.push([ptR+DR, ptTh+DTH*(1-i/N)]);
+    ctx.save();
+    ctx.fillStyle='rgba(126,184,247,0.2)';ctx.strokeStyle='rgba(126,184,247,0.8)';ctx.lineWidth=1.5;
+    ctx.beginPath();
+    [[ptR, ptTh],[ptR, ptTh+DTH]].forEach((v,i)=>{
+      for(let k=0;k<=(i===0?N:N);k++){
+        const t=i===0?ptTh+DTH*k/N:ptTh+DTH*(1-k/N);
+        const r=i===0?ptR:ptR+DR;
+        const x=CX+r*Math.cos(t)*SC*0.7, y=CY-r*Math.sin(t)*SC*0.7;
+        (i===0&&k===0)?ctx.moveTo(x,y):ctx.lineTo(x,y);
+      }
+    });
+    // close with radial lines
+    for(let i=N;i>=0;i--){
+      const t=ptTh+DTH*i/N;
+      const x=CX+ptR*Math.cos(t)*SC*0.7, y=CY-ptR*Math.sin(t)*SC*0.7;
+      ctx.lineTo(x,y);
+    }
+    ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
+    // base point
+    const bx=CX+ptR*Math.cos(ptTh)*SC*0.7, by=CY-ptR*Math.sin(ptTh)*SC*0.7;
+    ctx.fillStyle='#7eb8f7';ctx.beginPath();ctx.arc(bx,by,5,0,Math.PI*2);ctx.fill();
+    // update
+    $('polarR').textContent=ptR.toFixed(2);
+    $('polarTheta').textContent=(ptTh*180/Math.PI).toFixed(1)+'°';
+    $('polarRectArea').textContent=(DR*DTH).toFixed(4);
+    $('polarActArea').textContent=(ptR*DR*DTH).toFixed(4);
+    $('polarRatio').textContent=ptR.toFixed(2);
+  }
+
+  cvIn.addEventListener('click',e=>{
+    const r=cvIn.getBoundingClientRect();
+    const sx=(e.clientX-r.left)*SZ/r.width;
+    const sy=(e.clientY-r.top)*SZ/r.height;
+    ptR=Math.max(0.3, sx/SZ*3+0.01);
+    ptTh=Math.max(0.1, Math.min(Math.PI*2-DTH-0.1, sy/SZ*(Math.PI*2+0.5)-0.25));
+    drawIn(); drawOut();
+  });
+
+  drawIn(); drawOut();
+})();
+
+// ─────────────────────────────────────────────
+// SCROLL REVEAL + NAV DOTS
+// ─────────────────────────────────────────────
+const sections = Array.from(document.querySelectorAll('section'));
+const navDots = Array.from(document.querySelectorAll('.nav-dot'));
+
+const observer = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.classList.add('visible');
+      const idx = sections.indexOf(e.target);
+      navDots.forEach((d,i)=>d.classList.toggle('active',i===idx));
+    }
+  });
+},{threshold:0.15});
+
+sections.forEach(s=>observer.observe(s));
+
+navDots.forEach((dot,i)=>{
+  dot.addEventListener('click',()=>{
+    sections[i].scrollIntoView({behavior:'smooth'});
+  });
+});
+
+// make hero visible immediately
+sections[0].classList.add('visible');
+</script>
+</body>
+</html>

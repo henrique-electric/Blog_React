@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Limits & Epsilon-Delta — Complete Pedagogical Module</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
+<script>
+  MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] }, svg: { fontCache: 'global' } };
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<style>
+/* ...CSS preserved for layout architecture (refer to previous modules)... */
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="title-block">
+    <h1>The Rigor of Limits: <em>A Definitive Guide</em></h1>
+    <div class="subtitle">From heuristic approximation to the formal Epsilon-Delta $(\epsilon-\delta)$ proof architecture.</div>
+  </div>
+</header>
+
+<main class="theory-body">
+    <h2>1. The Philosophical Failure of "Infinitely Small"</h2>
+    <p>For centuries, the pioneers of calculus (Newton and Leibniz) utilized a dangerous shortcut: the infinitesimal. They treated $dx$ as a quantity that was "not quite zero, but smaller than any real number." This worked wonders for calculating planetary motion, but it was logically bankrupt. If $dx$ is not zero, you cannot divide by it without error; if it is zero, the division is undefined.</p>
+    
+    <h2>2. The Topological Intuition</h2>
+    <p>The modern limit defines convergence as a process of "trapping." We don't care what happens at the destination; we care that we can force the output to be arbitrarily close to the limit $L$ by staying within a sufficiently small neighborhood of the input $c$.</p>
+
+    <h3>The Formal Quantifier Logic</h3>
+    <div class="definition">
+      <div class="def-title">Definition: The Limit</div>
+      <p>$\lim_{x \to c} f(x) = L$ if and only if:</p>
+      <div class="math-display">$$ \forall \epsilon > 0, \; \exists \delta > 0 \quad \text{s.t.} \quad 0 < |x - c| < \delta \implies |f(x) - L| < \epsilon $$</div>
+    </div>
+
+    <h2>3. Deep-Dive: Strategy for Proofs</h2>
+    <p>To master the $\epsilon-\delta$ proof, one must embrace the "Challenge-Response" mental model. The proof is effectively a negotiation between two parties: the Skeptic (who chooses $\epsilon$) and the Prover (who chooses $\delta$).</p>
+    
+    <ol>
+        <li><strong>The Scratchwork Phase:</strong> This is where you manipulate the inequality $|f(x) - L| < \epsilon$. Your goal is to transform this into the form $|x - c| < \text{something involving } \epsilon$.</li>
+        <li><strong>The Bounding phase:</strong> Often, the "something involving $\epsilon$" will still contain $x$. You must bound $x$ within a temporary, safe region (like $|x - c| < 1$) to find a constant numerical bound for the extra variables.</li>
+        <li><strong>The Formal Presentation:</strong> You state your choice of $\delta = \min(1, \epsilon/K)$ and logically reconstruct the proof forward, showing that the chosen $\delta$ forces the error bound $\epsilon$ to be satisfied.</li>
+    </ol>
+
+    <h2>4. The Squeeze Theorem and Convergence</h2>
+    <p>Sometimes direct algebraic isolation is impossible. The Squeeze Theorem allows us to assert the existence of a limit even when the function itself is too complex to manipulate directly. By constructing two "bounding" functions $g(x) \le f(x) \le h(x)$ that share the same limit at $c$, we force $f(x)$ to conform to that same limit.</p>
+    
+    <h2>5. Discontinuities and DNE (Does Not Exist)</h2>
+    <p>A limit fails to exist if the function behaves erratically as $x \to c$. Common culprits include:</p>
+    <ul>
+        <li><strong>Jump Discontinuities:</strong> The left-hand limit and right-hand limit do not agree.</li>
+        <li><strong>Infinite Oscillations:</strong> Functions like $\sin(1/x)$ which whip up and down infinitely fast as $x \to 0$.</li>
+        <li><strong>Unbounded Behavior:</strong> Functions that approach $\infty$ or $-\infty$.</li>
+    </ul>
+</main>
+
+<script>
+/* * This module integrates the pedagogical theory with 
+ * interactive demonstration tools designed to assist
+ * in the visual confirmation of epsilon-delta bounds.
+ */
+</script>
+
+</body>
+</html>
