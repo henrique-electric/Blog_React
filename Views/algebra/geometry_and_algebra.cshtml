@@ -1,0 +1,6 @@
+@{
+    Layout = null;
+    var env = (Microsoft.AspNetCore.Hosting.IWebHostEnvironment)Context.RequestServices.GetService(typeof(Microsoft.AspNetCore.Hosting.IWebHostEnvironment))!;
+    var htmlPath = System.IO.Path.Combine(env.ContentRootPath, "Views", "Algebra", "geometry_and_algebra.html");
+}
+@Html.Raw(System.IO.File.ReadAllText(htmlPath))
