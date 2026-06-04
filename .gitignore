@@ -3,3 +3,5 @@ bin
 frontend/node_modules
 .DS_Store
 .fake
+publish
+.env
