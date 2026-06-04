@@ -20,4 +20,18 @@ public class CalculusController : Controller
         string file = Path.Combine(_env.WebRootPath, "Calculus", "derivatives.html");
         return PhysicalFile(file, "text/html");
     }
+
+    public IActionResult DoubleIntegral()
+    {
+        string file = Path.Combine(_env.WebRootPath, "Calculus", "double_integral.html");
+        return PhysicalFile(file, "text/html");
+    }
+
+    public IActionResult Jacobian()
+    {
+        string file = Path.Combine(_env.WebRootPath, "Calculus", "jacobian.html");
+        return PhysicalFile(file, "text/html");
+    }
+
+    
 }
